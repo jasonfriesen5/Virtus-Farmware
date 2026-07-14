@@ -24,7 +24,7 @@
 #include <InternalFileSystem.h>
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.1.0"
+#define FIRMWARE_VERSION   "1.1.1"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "HarvestScale"   // matches app's scan filter
 #define MAX_CONNECTIONS    10               // simultaneous BLE clients
@@ -63,6 +63,7 @@
 NAU7802 nau;
 BLEUart  bleuart;
 BLEDis   bledis;
+BLEDfu   bledfu;    // OTA DFU entry service — lets nRF Connect flash updates
 
 using namespace Adafruit_LittleFS_Namespace;
 #define CAL_FILE "/virtus_cal.dat"
@@ -390,6 +391,7 @@ void setup() {
   Bluefruit.setName(BLE_NAME);
   Bluefruit.Periph.setConnectCallback(connectCallback);
 
+  bledfu.begin();              // must start before other services
   bledis.setManufacturer("Virtus");
   bledis.setModel(MODEL_NAME);
   bledis.begin();
