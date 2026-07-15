@@ -24,7 +24,7 @@
 #include <InternalFileSystem.h>
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.2.1"
+#define FIRMWARE_VERSION   "1.3.0"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "HarvestScale"   // matches app's scan filter
 #define MAX_CONNECTIONS    4                // simultaneous BLE clients
@@ -59,6 +59,9 @@
 #define DEFAULT_SENS_MVV   2.0f      // load-cell sensitivity, mV/V
 #define DEFAULT_CAPACITY   1000.0f   // rated capacity, kg
 #define DEFAULT_CALFACTOR  1.0f
+#define DEFAULT_RESOLUTION 10.0f     // reported weight rounds to this (kg);
+                                     // change at runtime with RES:<kg>, e.g.
+                                     // RES:0.1 for bench testing
 
 // Stability: reading is "stable" when the spread of the last
 // STABLE_WINDOW readings is under STABLE_BAND (kg)
@@ -80,6 +83,7 @@ struct CalData {
   float    sensMvV;
   float    capacity;
   int32_t  tareOffset;     // raw counts at zero
+  float    resolution;     // reported weight rounds to this (kg)
 };
 CalData cal;
 
@@ -110,6 +114,7 @@ void calDefaults() {
   cal.sensMvV    = DEFAULT_SENS_MVV;
   cal.capacity   = DEFAULT_CAPACITY;
   cal.tareOffset = 0;
+  cal.resolution = DEFAULT_RESOLUTION;
 }
 
 void calSave() {
@@ -122,12 +127,15 @@ void calSave() {
 }
 
 void calLoad() {
+  int got = 0;
   File f(InternalFS);
   if (f.open(CAL_FILE, FILE_O_READ)) {
-    f.read((uint8_t*)&cal, sizeof(cal));
+    got = f.read((uint8_t*)&cal, sizeof(cal));
     f.close();
   }
-  if (cal.magic != 0x56495254) calDefaults();
+  // struct grew in v1.3.0 — a short read means stale layout, start fresh
+  if (got != (int)sizeof(cal) || cal.magic != 0x56495254) calDefaults();
+  if (cal.resolution < 0.01f || cal.resolution > 1000.0f) cal.resolution = DEFAULT_RESOLUTION;
   recomputeScale();
 }
 
@@ -331,15 +339,19 @@ void handleCommand(String cmd) {
   }
   else if (cmd.startsWith("CAL:")) {
     float f = cmd.substring(4).toFloat();
-    if (f > 0.0001f) { cal.calFactor = f; calSave(); }
+    if (f > 0.0001f) { cal.calFactor = f; calSave(); bleSend("CAL_OK"); }
   }
   else if (cmd.startsWith("SENS:")) {
     float f = cmd.substring(5).toFloat();
-    if (f > 0.01f) { cal.sensMvV = f; recomputeScale(); calSave(); }
+    if (f > 0.01f) { cal.sensMvV = f; recomputeScale(); calSave(); bleSend("SENS_OK"); }
   }
   else if (cmd.startsWith("CAP:")) {
     float f = cmd.substring(4).toFloat();
-    if (f > 0.01f) { cal.capacity = f; recomputeScale(); calSave(); }
+    if (f > 0.01f) { cal.capacity = f; recomputeScale(); calSave(); bleSend("CAP_OK"); }
+  }
+  else if (cmd.startsWith("RES:")) {
+    float f = cmd.substring(4).toFloat();
+    if (f >= 0.01f && f <= 1000.0f) { cal.resolution = f; calSave(); bleSend("RES_OK"); }
   }
   else if (cmd == "RESTORE") {
     calDefaults();
@@ -479,6 +491,11 @@ void loop() {
     float gross = rawFiltered            / countsPerKg * cal.calFactor;
     float net   = (rawFiltered - cal.tareOffset) / countsPerKg * cal.calFactor;
 
+    // report at the configured resolution (default 10 kg, RES:<kg> to change)
+    float q = cal.resolution;
+    float netR   = roundf(net   / q) * q;
+    float grossR = roundf(gross / q) * q;
+
     // stability: spread of recent net readings inside the band
     recentNet[recentIdx] = net;
     recentIdx = (recentIdx + 1) % STABLE_WINDOW;
@@ -493,7 +510,7 @@ void loop() {
       stable = (mx - mn) < STABLE_BAND;
     }
 
-    bleSend("P:" + String(net, 1) + ",L:" + String(gross, 1) +
+    bleSend("P:" + String(netR, 1) + ",L:" + String(grossR, 1) +
             ",S:" + (stable ? "1" : "0") + ",U:0");
   }
 }

@@ -24,10 +24,10 @@
 #include <InternalFileSystem.h>
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.1.1"
+#define FIRMWARE_VERSION   "1.2.1"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "HarvestScale"   // matches app's scan filter
-#define MAX_CONNECTIONS    10               // simultaneous BLE clients
+#define MAX_CONNECTIONS    4                // simultaneous BLE clients
 
 // I2C pins the NAU7802 is wired to. Defaults to the selected board's
 // standard Wire pins: on the pca10056 target that's P0.26/P0.27 (the
@@ -44,9 +44,15 @@
 #define NAU_LDO            NAU7802_LDO_3V0  // LDO output feeding the load cell
 #define NAU_RATE           NAU7802_SPS_10
 
-// Battery sense: set to the analog pin wired to a battery divider,
-// or -1 if none. DIVIDER = Vbat / Vpin (2.0 for a 100k/100k divider).
-#define BATT_SENSE_PIN     -1
+// Battery sense. Boards whose variant defines PIN_VBAT (Feather
+// nRF52840 / Sense: onboard 100k/100k divider) are detected
+// automatically; otherwise set an analog pin here, or -1 for none.
+// DIVIDER = Vbat / Vpin (2.0 for a 100k/100k divider).
+#if defined(PIN_VBAT)
+  #define BATT_SENSE_PIN   PIN_VBAT
+#else
+  #define BATT_SENSE_PIN   -1
+#endif
 #define BATT_DIVIDER       2.0f
 
 // Defaults used until the app pushes CAL/SENS/CAP (kept in flash)
@@ -126,12 +132,16 @@ void calLoad() {
 }
 
 // ─────────────────────── BLE OUTPUT ───────────────────────
+bool bleReady = false;   // true once Bluefruit.begin() has succeeded
+
 // fan out to every connected client that enabled notifications
 void bleSend(const String& s) {
-  String line = s + "\n";
-  for (uint16_t h = 0; h < BLE_MAX_CONNECTION; h++) {
-    if (Bluefruit.connected(h) && bleuart.notifyEnabled(h)) {
-      bleuart.write(h, (const uint8_t*)line.c_str(), line.length());
+  if (bleReady) {
+    String line = s + "\n";
+    for (uint16_t h = 0; h < BLE_MAX_CONNECTION; h++) {
+      if (Bluefruit.connected(h) && bleuart.notifyEnabled(h)) {
+        bleuart.write(h, (const uint8_t*)line.c_str(), line.length());
+      }
     }
   }
   Serial.println(s);
@@ -360,13 +370,15 @@ void pollBleRx() {
 }
 
 // ─────────────────────── SETUP ───────────────────────
-// advertising stops when a client connects — restart it so the next
-// client can also find us, until all slots are taken
+// advertising stops when a client connects — flag a restart so the
+// next client can also find us. The restart happens in loop(), not
+// here: calling Advertising.start() from inside the BLE event
+// callback can race the connection setup.
+volatile bool advRestartPending = false;
+
 void connectCallback(uint16_t conn_hdl) {
   (void)conn_hdl;
-  if (Bluefruit.Periph.connected() < MAX_CONNECTIONS) {
-    Bluefruit.Advertising.start(0);
-  }
+  advRestartPending = true;
 }
 
 void setup() {
@@ -386,7 +398,9 @@ void setup() {
   if (!nauReady) Serial.println("ERR: NAU7802 not found at 0x2A — retrying in loop");
 
   // BLE init
-  Bluefruit.begin(MAX_CONNECTIONS, 0);
+  bleReady = Bluefruit.begin(MAX_CONNECTIONS, 0);
+  Serial.println(bleReady ? "BLE stack started"
+                          : "ERR: BLE stack failed to start (connection count too high?)");
   Bluefruit.setTxPower(4);
   Bluefruit.setName(BLE_NAME);
   Bluefruit.Periph.setConnectCallback(connectCallback);
@@ -412,6 +426,14 @@ void setup() {
 
 // ─────────────────────── LOOP ───────────────────────
 void loop() {
+  if (advRestartPending) {
+    advRestartPending = false;
+    if (Bluefruit.Periph.connected() < MAX_CONNECTIONS &&
+        !Bluefruit.Advertising.isRunning()) {
+      Bluefruit.Advertising.start(0);
+    }
+  }
+
   pollBleRx();
 
   // commands over USB serial too, so bring-up works without BLE
@@ -420,6 +442,13 @@ void loop() {
     char c = (char)Serial.read();
     if (c == '\n' || c == '\r') { handleCommand(serLine); serLine = ""; }
     else if (serLine.length() < 64) serLine += c;
+  }
+
+  // unsolicited status every 30 s keeps the app's battery pill fresh
+  // (must run even when the NAU7802 is missing)
+  if (Bluefruit.connected() && millis() - lastStatusMs > 30000) {
+    lastStatusMs = millis();
+    sendStatus();
   }
 
   // sensor missing at boot (or unplugged): rescan every 3 s
@@ -466,11 +495,5 @@ void loop() {
 
     bleSend("P:" + String(net, 1) + ",L:" + String(gross, 1) +
             ",S:" + (stable ? "1" : "0") + ",U:0");
-  }
-
-  // unsolicited status every 30 s keeps the app's battery pill fresh
-  if (Bluefruit.connected() && millis() - lastStatusMs > 30000) {
-    lastStatusMs = millis();
-    sendStatus();
   }
 }
