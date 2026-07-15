@@ -24,10 +24,10 @@
 #include <InternalFileSystem.h>
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.2.0"
+#define FIRMWARE_VERSION   "1.1.1"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "HarvestScale"   // matches app's scan filter
-#define MAX_CONNECTIONS    4                // simultaneous BLE clients
+#define MAX_CONNECTIONS    10               // simultaneous BLE clients
 
 // I2C pins the NAU7802 is wired to. Defaults to the selected board's
 // standard Wire pins: on the pca10056 target that's P0.26/P0.27 (the
@@ -44,15 +44,9 @@
 #define NAU_LDO            NAU7802_LDO_3V0  // LDO output feeding the load cell
 #define NAU_RATE           NAU7802_SPS_10
 
-// Battery sense. Boards whose variant defines PIN_VBAT (Feather
-// nRF52840 / Sense: onboard 100k/100k divider) are detected
-// automatically; otherwise set an analog pin here, or -1 for none.
-// DIVIDER = Vbat / Vpin (2.0 for a 100k/100k divider).
-#if defined(PIN_VBAT)
-  #define BATT_SENSE_PIN   PIN_VBAT
-#else
-  #define BATT_SENSE_PIN   -1
-#endif
+// Battery sense: set to the analog pin wired to a battery divider,
+// or -1 if none. DIVIDER = Vbat / Vpin (2.0 for a 100k/100k divider).
+#define BATT_SENSE_PIN     -1
 #define BATT_DIVIDER       2.0f
 
 // Defaults used until the app pushes CAL/SENS/CAP (kept in flash)
@@ -132,16 +126,12 @@ void calLoad() {
 }
 
 // ─────────────────────── BLE OUTPUT ───────────────────────
-bool bleReady = false;   // true once Bluefruit.begin() has succeeded
-
 // fan out to every connected client that enabled notifications
 void bleSend(const String& s) {
-  if (bleReady) {
-    String line = s + "\n";
-    for (uint16_t h = 0; h < BLE_MAX_CONNECTION; h++) {
-      if (Bluefruit.connected(h) && bleuart.notifyEnabled(h)) {
-        bleuart.write(h, (const uint8_t*)line.c_str(), line.length());
-      }
+  String line = s + "\n";
+  for (uint16_t h = 0; h < BLE_MAX_CONNECTION; h++) {
+    if (Bluefruit.connected(h) && bleuart.notifyEnabled(h)) {
+      bleuart.write(h, (const uint8_t*)line.c_str(), line.length());
     }
   }
   Serial.println(s);
@@ -370,15 +360,13 @@ void pollBleRx() {
 }
 
 // ─────────────────────── SETUP ───────────────────────
-// advertising stops when a client connects — flag a restart so the
-// next client can also find us. The restart happens in loop(), not
-// here: calling Advertising.start() from inside the BLE event
-// callback can race the connection setup.
-volatile bool advRestartPending = false;
-
+// advertising stops when a client connects — restart it so the next
+// client can also find us, until all slots are taken
 void connectCallback(uint16_t conn_hdl) {
   (void)conn_hdl;
-  advRestartPending = true;
+  if (Bluefruit.Periph.connected() < MAX_CONNECTIONS) {
+    Bluefruit.Advertising.start(0);
+  }
 }
 
 void setup() {
@@ -398,9 +386,7 @@ void setup() {
   if (!nauReady) Serial.println("ERR: NAU7802 not found at 0x2A — retrying in loop");
 
   // BLE init
-  bleReady = Bluefruit.begin(MAX_CONNECTIONS, 0);
-  Serial.println(bleReady ? "BLE stack started"
-                          : "ERR: BLE stack failed to start (connection count too high?)");
+  Bluefruit.begin(MAX_CONNECTIONS, 0);
   Bluefruit.setTxPower(4);
   Bluefruit.setName(BLE_NAME);
   Bluefruit.Periph.setConnectCallback(connectCallback);
@@ -426,14 +412,6 @@ void setup() {
 
 // ─────────────────────── LOOP ───────────────────────
 void loop() {
-  if (advRestartPending) {
-    advRestartPending = false;
-    if (Bluefruit.Periph.connected() < MAX_CONNECTIONS &&
-        !Bluefruit.Advertising.isRunning()) {
-      Bluefruit.Advertising.start(0);
-    }
-  }
-
   pollBleRx();
 
   // commands over USB serial too, so bring-up works without BLE
