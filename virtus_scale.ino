@@ -24,7 +24,7 @@
 #include <InternalFileSystem.h>
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.2.0"
+#define FIRMWARE_VERSION   "1.2.1"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "HarvestScale"   // matches app's scan filter
 #define MAX_CONNECTIONS    4                // simultaneous BLE clients
@@ -444,6 +444,13 @@ void loop() {
     else if (serLine.length() < 64) serLine += c;
   }
 
+  // unsolicited status every 30 s keeps the app's battery pill fresh
+  // (must run even when the NAU7802 is missing)
+  if (Bluefruit.connected() && millis() - lastStatusMs > 30000) {
+    lastStatusMs = millis();
+    sendStatus();
+  }
+
   // sensor missing at boot (or unplugged): rescan every 3 s
   if (!nauReady) {
     if (millis() - lastNauRetry > 3000) {
@@ -488,11 +495,5 @@ void loop() {
 
     bleSend("P:" + String(net, 1) + ",L:" + String(gross, 1) +
             ",S:" + (stable ? "1" : "0") + ",U:0");
-  }
-
-  // unsolicited status every 30 s keeps the app's battery pill fresh
-  if (Bluefruit.connected() && millis() - lastStatusMs > 30000) {
-    lastStatusMs = millis();
-    sendStatus();
   }
 }
