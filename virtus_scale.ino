@@ -24,7 +24,7 @@
 #include <InternalFileSystem.h>
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.3.0"
+#define FIRMWARE_VERSION   "1.3.3"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "HarvestScale"   // matches app's scan filter
 #define MAX_CONNECTIONS    4                // simultaneous BLE clients
@@ -98,6 +98,7 @@ uint8_t recentCount   = 0;
 char    serialNum[13];
 String  rxLine;
 uint32_t lastStatusMs = 0;
+uint32_t lastSampleMs = 0;   // last successful NAU7802 conversion
 
 // ─────────────────────── CALIBRATION MATH ───────────────────────
 // Full-scale ADC input is ±(AVDD/gain); cell output at rated load is
@@ -142,13 +143,23 @@ void calLoad() {
 // ─────────────────────── BLE OUTPUT ───────────────────────
 bool bleReady = false;   // true once Bluefruit.begin() has succeeded
 
-// fan out to every connected client that enabled notifications
+// fan out to every connected client that enabled notifications.
+// BLEUart::write sends ONE notification per call and silently drops
+// anything longer than the connection MTU allows — so slice every
+// line into MTU-sized chunks (clients reassemble on the newline).
 void bleSend(const String& s) {
   if (bleReady) {
     String line = s + "\n";
+    const uint8_t* p = (const uint8_t*)line.c_str();
+    size_t total = line.length();
     for (uint16_t h = 0; h < BLE_MAX_CONNECTION; h++) {
-      if (Bluefruit.connected(h) && bleuart.notifyEnabled(h)) {
-        bleuart.write(h, (const uint8_t*)line.c_str(), line.length());
+      if (!Bluefruit.connected(h) || !bleuart.notifyEnabled(h)) continue;
+      BLEConnection* conn = Bluefruit.Connection(h);
+      size_t maxChunk = conn ? (size_t)(conn->getMtu() - 3) : 20;
+      for (size_t off = 0; off < total; off += maxChunk) {
+        size_t n = total - off;
+        if (n > maxChunk) n = maxChunk;
+        bleuart.write(h, p + off, n);
       }
     }
   }
@@ -235,6 +246,7 @@ bool nauInit() {
   nau.calibrateAFE();            // re-cal analog front end after config
   haveReading = false;
   recentCount = 0;
+  lastSampleMs = millis();
   bleSend(String("NAU7802 ready (revision 0x") + String(nau.getRevisionCode(), HEX) + ")");
   return true;
 }
@@ -387,10 +399,15 @@ void pollBleRx() {
 // here: calling Advertising.start() from inside the BLE event
 // callback can race the connection setup.
 volatile bool advRestartPending = false;
+volatile uint32_t infoDueAt = 0;   // when to volunteer INFO+STATUS after a connect
 
 void connectCallback(uint16_t conn_hdl) {
   (void)conn_hdl;
   advRestartPending = true;
+  // the app's own INFO/STATUS request often races the notification
+  // setup and its one-shot reply gets lost — send them unsolicited
+  // once the pipe has had time to open
+  infoDueAt = millis() + 2500;
 }
 
 void setup() {
@@ -446,6 +463,12 @@ void loop() {
     }
   }
 
+  if (infoDueAt && millis() > infoDueAt) {
+    infoDueAt = 0;
+    sendInfo();
+    sendStatus();
+  }
+
   pollBleRx();
 
   // commands over USB serial too, so bring-up works without BLE
@@ -473,7 +496,17 @@ void loop() {
     return;
   }
 
+  // sensor stall watchdog: a power/bus glitch can silently reset the
+  // NAU7802 mid-run (conversions stop, battery keeps reporting). If no
+  // sample arrives for 3 s, drop to the auto-reinit path above.
+  if (millis() - lastSampleMs > 3000) {
+    nauReady = false;
+    bleSend("NAU7802 stalled — reinitializing");
+    return;
+  }
+
   if (nau.available()) {
+    lastSampleMs = millis();
     int32_t raw = nau.getReading();
 
     // 24-bit ADC clips at ±8388607: weight freezes even as load grows.
