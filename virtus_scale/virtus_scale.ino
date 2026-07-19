@@ -24,7 +24,7 @@
 #include <InternalFileSystem.h>
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.3.3"
+#define FIRMWARE_VERSION   "1.4.0"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "HarvestScale"   // matches app's scan filter
 #define MAX_CONNECTIONS    4                // simultaneous BLE clients
@@ -168,7 +168,11 @@ void bleSend(const String& s) {
 
 void sendInfo() {
   bleSend(String("INFO:firmware=") + FIRMWARE_VERSION +
-          ",model=" + MODEL_NAME + ",serial=" + serialNum);
+          ",model=" + MODEL_NAME + ",serial=" + serialNum +
+          ",cal=" + String(cal.calFactor, 4) +
+          ",sens=" + String(cal.sensMvV, 2) +
+          ",cap=" + String(cal.capacity, 0) +
+          ",res=" + String(cal.resolution, 1));
 }
 
 void sendStatus() {
@@ -355,11 +359,19 @@ void handleCommand(String cmd) {
   }
   else if (cmd.startsWith("SENS:")) {
     float f = cmd.substring(5).toFloat();
-    if (f > 0.01f) { cal.sensMvV = f; recomputeScale(); calSave(); bleSend("SENS_OK"); }
+    if (f > 0.01f) {
+      cal.sensMvV = f; recomputeScale(); calSave();
+      bleSend("SENS_OK");
+      sendInfo();             // resync the app with authoritative values
+    }
   }
   else if (cmd.startsWith("CAP:")) {
     float f = cmd.substring(4).toFloat();
-    if (f > 0.01f) { cal.capacity = f; recomputeScale(); calSave(); bleSend("CAP_OK"); }
+    if (f > 0.01f) {
+      cal.capacity = f; recomputeScale(); calSave();
+      bleSend("CAP_OK");
+      sendInfo();             // resync the app with authoritative values
+    }
   }
   else if (cmd.startsWith("RES:")) {
     float f = cmd.substring(4).toFloat();
@@ -370,6 +382,7 @@ void handleCommand(String cmd) {
     recomputeScale();
     calSave();
     bleSend("RESTORE_OK");
+    sendInfo();               // resync the app with factory values
   }
   else if (cmd == "SCAN")                      i2cScan();
   else if (cmd == "PINTEST")                   pinTest();

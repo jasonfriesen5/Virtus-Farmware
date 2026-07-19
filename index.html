@@ -181,6 +181,7 @@ body{
 .sr-sub{font-size:11px;color:var(--text3);margin-top:2px;}
 .btn-small-green{padding:6px 13px;background:var(--green-mid);border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:#fff;cursor:pointer;}
 .btn-small-red{padding:6px 13px;background:rgba(176,48,32,0.08);border:1px solid rgba(176,48,32,0.2);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;color:#B03020;cursor:pointer;}
+.info-ico{display:inline-block;margin-left:5px;color:#2E7FD4;font-size:13px;font-weight:700;cursor:pointer;user-select:none;}
 .toast{position:fixed;bottom:calc(var(--tabbar-h) + 12px);left:50%;transform:translateX(-50%) translateY(10px);background:#3A2800;color:#FFF0B0;padding:11px 22px;border-radius:40px;font-size:13px;font-weight:500;border:1px solid rgba(180,130,0,0.3);box-shadow:0 8px 32px rgba(100,70,0,0.25);opacity:0;transition:all 0.25s;pointer-events:none;white-space:nowrap;z-index:999;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .toast.success{background:#1A4A2A;color:#A0FFAA;border-color:rgba(45,157,92,0.4);}
@@ -1455,12 +1456,12 @@ function _openPasswordResetWhenReady(){
     <div id="signin-form">
       <div class="signin-field">
         <label>Email Address</label>
-        <input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email" onkeydown="if(event.key==='Enter')doSignIn()">
+        <input type="email" id="signin-email" autocomplete="email" onkeydown="if(event.key==='Enter')doSignIn()">
       </div>
       <div class="signin-field">
         <label>Password</label>
         <div class="pw-wrap">
-          <input type="password" id="signin-password" placeholder="Your password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()">
+          <input type="password" id="signin-password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doSignIn()">
           <button class="pw-eye" type="button" onclick="togglePw('signin-password',this)" tabindex="-1">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
@@ -1474,16 +1475,16 @@ function _openPasswordResetWhenReady(){
     <div id="signup-form" style="display:none;">
       <div class="signin-field">
         <label>Full Name</label>
-        <input type="text" id="signup-name" placeholder="e.g. Carlos Mendez" autocomplete="name">
+        <input type="text" id="signup-name" autocomplete="name">
       </div>
       <div class="signin-field">
         <label>Email Address</label>
-        <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email">
+        <input type="email" id="signup-email" autocomplete="email">
       </div>
       <div class="signin-field">
         <label>Password</label>
         <div class="pw-wrap">
-          <input type="password" id="signup-password" placeholder="Min. 8 characters" autocomplete="new-password">
+          <input type="password" id="signup-password" autocomplete="new-password">
           <button class="pw-eye" type="button" onclick="togglePw('signup-password',this)" tabindex="-1">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
@@ -1498,7 +1499,7 @@ function _openPasswordResetWhenReady(){
       <div style="font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.5;">Enter your email address and we'll send you a link to reset your password.</div>
       <div class="signin-field">
         <label>Email Address</label>
-        <input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email" onkeydown="if(event.key==='Enter')doForgotPassword()">
+        <input type="email" id="forgot-email" autocomplete="email" onkeydown="if(event.key==='Enter')doForgotPassword()">
       </div>
       <button class="signin-btn" id="forgot-btn" onclick="doForgotPassword()">Send Reset Link</button>
       <button class="signin-forgot" onclick="showSignInForm()">← Back to Sign In</button>
@@ -1509,11 +1510,11 @@ function _openPasswordResetWhenReady(){
       <div style="font-size:14px;color:var(--text2);margin-bottom:16px;line-height:1.5;">Enter your new password below.</div>
       <div class="signin-field">
         <label>New Password</label>
-        <input type="password" id="reset-password" placeholder="Min. 8 characters" autocomplete="new-password">
+        <input type="password" id="reset-password" autocomplete="new-password">
       </div>
       <div class="signin-field">
         <label>Confirm Password</label>
-        <input type="password" id="reset-confirm" placeholder="Repeat password" autocomplete="new-password">
+        <input type="password" id="reset-confirm" autocomplete="new-password">
       </div>
       <button class="signin-btn" id="reset-btn" onclick="doResetPassword()">Set New Password</button>
     </div>
@@ -1718,7 +1719,7 @@ function _openPasswordResetWhenReady(){
           <div class="ff" style="flex:1;"><label>Crop</label><select id="f-crop" onchange="handleCropChange(this)"><option value="Canola">Canola</option><option value="Chia">Chia</option><option value="Corn">Corn</option><option value="Cotton">Cotton</option><option value="Oats">Oats</option><option value="Peanuts">Peanuts</option><option value="Rice">Rice</option><option value="Soybeans">Soybeans</option><option value="Sorghum">Sorghum</option><option value="Sunflower">Sunflower</option><option value="Wheat">Wheat</option><option value="__add__" style="color:#A85E00;font-weight:600;">+ Add new crop...</option></select></div>
           <div class="ff" style="flex:1;">
             <label>Moisture %</label>
-            <input type="number" id="f-moisture" min="0" max="40" step="0.1" value="13" placeholder="13.0"
+            <input type="number" id="f-moisture" min="0" max="40" step="0.1" value="13"
               oninput="updateMoistureDisplay(this.value)">
           </div>
         </div>
@@ -1755,7 +1756,7 @@ function _openPasswordResetWhenReady(){
         <div class="farm-list" id="farm-list"></div>
         <div class="add-form" id="add-farm-form">
           <div class="add-form-row">
-            <input type="text" id="new-farm-input" placeholder="Farm name..." autocomplete="off">
+            <input type="text" id="new-farm-input" autocomplete="off">
             <button class="btn-add-confirm" onclick="addFarm()">Add</button>
           </div>
         </div>
@@ -1794,7 +1795,7 @@ function _openPasswordResetWhenReady(){
 
         <div class="add-form" id="add-field-form">
           <div class="add-form-row">
-            <input type="text" id="new-field-input" placeholder="Field name..." autocomplete="off">
+            <input type="text" id="new-field-input" autocomplete="off">
             <button class="btn-add-confirm" onclick="addField()">Add</button>
           </div>
         </div>
@@ -1830,7 +1831,7 @@ function _openPasswordResetWhenReady(){
       </div>
       <div class="add-form" id="add-destination-form">
         <div class="add-form-row">
-          <input type="text" id="new-destination-input" placeholder="e.g. Grain Bin A, Silo 1..." autocomplete="off">
+          <input type="text" id="new-destination-input" autocomplete="off">
           <button class="btn-add-confirm" onclick="addDestination()">Add</button>
         </div>
       </div>
@@ -1974,18 +1975,17 @@ function _openPasswordResetWhenReady(){
           </div>
           <div class="setting-row"><div class="sr-label">Battery <span id="dev-battery-icon" style="font-size:11px;"></span></div><div class="sr-val" id="dev-battery">N/A</div></div>
           <div class="setting-row"><div class="sr-label">Input Voltage</div><div class="sr-val" id="dev-ext-power">N/A</div></div>
+          <div class="setting-row" onclick="editSensitivity()" style="cursor:pointer;"><div class="sr-label">Sensitivity <span class="info-ico" onclick="event.stopPropagation();showInfoDialog('sens')">ⓘ</span></div><div class="sr-val" id="dev-sensitivity">N/A</div></div>
+          <div class="setting-row" onclick="editCapacity()" style="cursor:pointer;"><div class="sr-label">Rated Capacity <span class="info-ico" onclick="event.stopPropagation();showInfoDialog('cap')">ⓘ</span></div><div class="sr-val" id="dev-capacity">N/A</div></div>
           <!-- Calibration Tool row — right under External Power -->
           <div class="setting-row" onclick="openCalibrationSheet()" style="cursor:pointer;border-bottom:none;">
             <div><div class="sr-label" style="color:#A85E00;">Calibration Tool</div></div>
             <div style="font-size:18px;color:rgba(180,130,0,0.4);">›</div>
           </div>
           <div class="setting-row" style="border-bottom:none;">
-            <div><div class="sr-label">Firmware Updates</div><div class="sr-sub">Check via scale WiFi connection</div></div>
-            <button class="btn-small-green" onclick="checkForBLEOTAUpdate()" id="btn-ota-check">Check</button>
+            <div><div class="sr-label">Firmware Update (DFU)</div><div class="sr-sub" id="dfu-sub">Double-tap the scale's reset button, then Update</div></div>
+            <button class="btn-small-green" onclick="startWebDfu()" id="btn-dfu">Update</button>
           </div>
-          <!-- Hidden elements kept for JS updateDeviceInfo compatibility -->
-          <div style="display:none;" id="dev-sensitivity"></div>
-          <div style="display:none;" id="dev-capacity"></div>
         </div>
 
         <!-- Calibration (compact) -->
@@ -2029,7 +2029,7 @@ function _openPasswordResetWhenReady(){
           <!-- Email address input -->
           <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px;padding:12px 14px;">
             <div class="sr-label">Send Report To</div>
-            <input type="email" id="diag-email" value="friesenj.jason@gmail.com" placeholder="company@example.com"
+            <input type="email" id="diag-email" value="friesenj.jason@gmail.com"
               style="width:100%;padding:10px 13px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;font-family:Inter,sans-serif;font-size:14px;color:var(--text);outline:none;">
           </div>
 
@@ -2317,7 +2317,7 @@ function _openPasswordResetWhenReady(){
     <div class="crop-modal-title">Add New Field</div>
     <div style="font-size:13px;color:var(--text3);margin-bottom:12px;" id="field-modal-farm-hint">Adding to: <span id="field-modal-farm-name">—</span></div>
     <div class="crop-modal-row">
-      <input class="crop-modal-input" type="text" id="new-field-modal-input" placeholder="e.g. Row A, Block 3..." autocomplete="off">
+      <input class="crop-modal-input" type="text" id="new-field-modal-input" autocomplete="off">
       <button class="crop-modal-btn" onclick="addNewFieldFromModal()">Add</button>
     </div>
     <button class="crop-modal-cancel" onclick="document.getElementById('field-modal-overlay').classList.remove('open')">Cancel</button>
@@ -2332,10 +2332,10 @@ function _openPasswordResetWhenReady(){
     <div id="crop-manage-list" style="margin-bottom:14px;max-height:160px;overflow-y:auto;"></div>
     <div style="font-size:12px;font-weight:700;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">Add New Crop</div>
     <div class="crop-modal-row" style="margin-bottom:10px;">
-      <input class="crop-modal-input" type="text" id="new-crop-input" placeholder="Crop name e.g. Wheat..." autocomplete="off">
+      <input class="crop-modal-input" type="text" id="new-crop-input" autocomplete="off">
     </div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-      <input class="crop-modal-input" type="number" id="new-crop-buweight" placeholder="lbs / bu e.g. 60" min="1" max="200" step="0.5"
+      <input class="crop-modal-input" type="number" id="new-crop-buweight" min="1" max="200" step="0.5"
         style="flex:1;font-size:14px;">
       <span style="font-size:12px;color:var(--text3);white-space:nowrap;">lbs / bu<br><span style="font-size:10px;">(for yield calc)</span></span>
     </div>
@@ -2392,7 +2392,7 @@ function _openPasswordResetWhenReady(){
       <div class="tx-row">
         <div class="tx-field-group">
           <label>Weight * (<span id="tx-weight-unit">kg</span>)</label>
-          <input type="number" id="tx-weight" placeholder="e.g. 24.5" step="0.01" min="0" oninput="updateTxDryPreview()">
+          <input type="number" id="tx-weight" step="0.01" min="0" oninput="updateTxDryPreview()">
         </div>
         <div class="tx-field-group">
           <label>Crop *</label>
@@ -2432,7 +2432,7 @@ function _openPasswordResetWhenReady(){
       <div class="tx-row">
         <div class="tx-field-group">
           <label>Moisture %</label>
-          <input type="number" id="tx-moisture" min="0" max="40" step="0.1" value="0" placeholder="0.0" oninput="updateTxDryPreview()">
+          <input type="number" id="tx-moisture" min="0" max="40" step="0.1" value="0" oninput="updateTxDryPreview()">
         </div>
         <div class="tx-field-group">
           <label>Dry Weight</label>
@@ -2442,7 +2442,7 @@ function _openPasswordResetWhenReady(){
       <!-- Row 5: Notes -->
       <div class="tx-field-group">
         <label>Notes</label>
-        <textarea id="tx-notes" placeholder="Optional notes..." rows="2" style="resize:none;"></textarea>
+        <textarea id="tx-notes" rows="2" style="resize:none;"></textarea>
       </div>
     </div>
     <div class="tx-sheet-footer">
@@ -2560,30 +2560,30 @@ function _openPasswordResetWhenReady(){
       <div class="tx-row">
         <div class="tx-field-group">
           <label>Truck Name *</label>
-          <input type="text" id="nt-name" placeholder="e.g. Truck 1, T-04" autocomplete="off">
+          <input type="text" id="nt-name" autocomplete="off">
         </div>
         <div class="tx-field-group">
           <label>Licence Plate *</label>
-          <input type="text" id="nt-plate" placeholder="e.g. ABC 123" autocomplete="off" style="text-transform:uppercase;">
+          <input type="text" id="nt-plate" autocomplete="off" style="text-transform:uppercase;">
         </div>
       </div>
       <div class="tx-row">
         <div class="tx-field-group">
           <label>Driver Name</label>
-          <input type="text" id="nt-driver" placeholder="e.g. John Smith" autocomplete="off">
+          <input type="text" id="nt-driver" autocomplete="off">
         </div>
         <div class="tx-field-group">
           <label>Capacity (kg)</label>
-          <input type="number" id="nt-capacity" placeholder="e.g. 36000" min="0" step="100">
+          <input type="number" id="nt-capacity" min="0" step="100">
         </div>
       </div>
       <div class="tx-field-group">
         <label>Make / Model</label>
-        <input type="text" id="nt-model" placeholder="e.g. Scania R500, Mercedes Actros" autocomplete="off">
+        <input type="text" id="nt-model" autocomplete="off">
       </div>
       <div class="tx-field-group">
         <label>Notes</label>
-        <textarea id="nt-notes" placeholder="Optional notes..." rows="2" style="resize:none;"></textarea>
+        <textarea id="nt-notes" rows="2" style="resize:none;"></textarea>
       </div>
     </div>
     <div class="tx-sheet-footer">
@@ -2619,11 +2619,11 @@ function _openPasswordResetWhenReady(){
       <input type="hidden" id="fes-field-id">
       <div class="tx-field-group">
         <label>Field Name</label>
-        <input type="text" id="fes-name" placeholder="Field name...">
+        <input type="text" id="fes-name">
       </div>
       <div class="tx-field-group">
         <label>Area (<span id="fes-area-unit-lbl">ha</span>)</label>
-        <input type="number" id="fes-area" placeholder="e.g. 12.5" min="0" step="0.1">
+        <input type="number" id="fes-area" min="0" step="0.1">
         <div id="fes-area-note" style="font-size:11px;color:#1A6B3C;margin-top:4px;"></div>
         <!-- Hidden unit selector kept for JS compat -->
         <select id="fes-area-unit" style="display:none;">
@@ -2639,7 +2639,7 @@ function _openPasswordResetWhenReady(){
       </div>
       <div class="tx-field-group">
         <label>Notes</label>
-        <textarea id="fes-notes" placeholder="e.g. Sandy soil, north section..." rows="2" style="resize:none;"></textarea>
+        <textarea id="fes-notes" rows="2" style="resize:none;"></textarea>
       </div>
     </div>
     <div class="tx-sheet-footer">
@@ -2674,20 +2674,12 @@ function _openPasswordResetWhenReady(){
     <div class="tx-sheet-body">
       <div class="cal-grid">
         <div class="cal-row">
-          <div class="cal-lbl">Sensitivity (mV/V)</div>
-          <input class="cal-input" type="number" id="cal-sensitivity" placeholder="e.g. 2.0  (3-4 cells × 5000kg)" step="0.01" min="0">
+          <div class="cal-lbl">Certified Weight <span class="info-ico" onclick="showInfoDialog('certified')">ⓘ</span></div>
+          <input class="cal-input" type="number" id="cal-certified" step="0.1" min="0">
         </div>
         <div class="cal-row">
-          <div class="cal-lbl">Rated Capacity (<span id="cal-cap-unit">kg</span>)</div>
-          <input class="cal-input" type="number" id="cal-rated-capacity" placeholder="e.g. 20000" step="1" min="0" title="Total combined capacity of all load cells. 4 × 5000kg = 20000kg">
-        </div>
-        <div class="cal-row">
-          <div class="cal-lbl">Certified Weight</div>
-          <input class="cal-input" type="number" id="cal-certified" placeholder="Known true weight" step="0.1" min="0">
-        </div>
-        <div class="cal-row">
-          <div class="cal-lbl">Scale Reading</div>
-          <input class="cal-input" type="number" id="cal-scale-reading" placeholder="What scale shows" step="0.1" min="0">
+          <div class="cal-lbl">Scale Reading <span class="info-ico" onclick="showInfoDialog('reading')">ⓘ</span></div>
+          <input class="cal-input" type="number" id="cal-scale-reading" step="0.1" min="0">
         </div>
       </div>
       <div style="padding:4px 0 12px;">
@@ -2695,7 +2687,7 @@ function _openPasswordResetWhenReady(){
       </div>
       <div class="cal-result-row">
         <div style="flex:1;">
-          <div class="sr-label">Calibration Factor</div>
+          <div class="sr-label">Calibration Factor <span class="info-ico" onclick="showInfoDialog('factor')">ⓘ</span></div>
           <div class="sr-sub" id="cal-result-note">Edit below to override</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -2731,7 +2723,7 @@ function _openPasswordResetWhenReady(){
       <input type="hidden" id="op-edit-id">
       <div class="tx-field-group">
         <label>Name *</label>
-        <input type="text" id="op-name-input" placeholder="e.g. Carlos Mendez" autocomplete="name">
+        <input type="text" id="op-name-input" autocomplete="name">
       </div>
       <div id="op-role-input" style="display:none;"></div>
     </div>
@@ -2767,7 +2759,7 @@ function _openPasswordResetWhenReady(){
       <input type="hidden" id="season-edit-id">
       <div class="tx-field-group">
         <label>Season Name *</label>
-        <input type="text" id="season-name-input" placeholder="e.g. 2025 Harvest, Spring 2025...">
+        <input type="text" id="season-name-input">
       </div>
     </div>
     <div class="tx-sheet-footer">
@@ -2847,7 +2839,7 @@ function _openPasswordResetWhenReady(){
       <div style="font-size:16px;font-weight:700;color:var(--text);">Edit Farm</div>
     </div>
     <div style="padding:16px;">
-      <input type="text" id="farm-edit-input" placeholder="Farm name..." autocomplete="off"
+      <input type="text" id="farm-edit-input" autocomplete="off"
         style="width:100%;padding:12px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:'Inter',sans-serif;color:var(--text);outline:none;box-sizing:border-box;">
       <input type="hidden" id="farm-edit-id">
     </div>
@@ -2865,7 +2857,7 @@ function _openPasswordResetWhenReady(){
       <div style="font-size:16px;font-weight:700;color:var(--text);">Edit Destination</div>
     </div>
     <div style="padding:16px;">
-      <input type="text" id="dest-edit-input" placeholder="Destination name..." autocomplete="off"
+      <input type="text" id="dest-edit-input" autocomplete="off"
         style="width:100%;padding:12px 14px;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:'Inter',sans-serif;color:var(--text);outline:none;box-sizing:border-box;">
       <input type="hidden" id="dest-edit-id">
     </div>
@@ -2910,7 +2902,7 @@ function _openPasswordResetWhenReady(){
     <div style="margin-bottom:14px;">
       <label style="font-size:12px;font-weight:700;color:#7A6040;display:block;margin-bottom:6px;">New Password</label>
       <div style="position:relative;">
-        <input type="password" id="app-reset-password" placeholder="Min. 8 characters" autocomplete="new-password"
+        <input type="password" id="app-reset-password" autocomplete="new-password"
           style="width:100%;padding:12px 44px 12px 14px;border:1.5px solid #E0D0B0;border-radius:12px;font-size:15px;font-family:Inter,sans-serif;color:#2C1F0A;outline:none;box-sizing:border-box;">
         <button type="button" onclick="togglePw('app-reset-password',this)"
           style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#A07040;padding:4px;display:flex;align-items:center;" tabindex="-1">
@@ -2923,7 +2915,7 @@ function _openPasswordResetWhenReady(){
     <div style="margin-bottom:20px;">
       <label style="font-size:12px;font-weight:700;color:#7A6040;display:block;margin-bottom:6px;">Confirm Password</label>
       <div style="position:relative;">
-        <input type="password" id="app-reset-confirm" placeholder="Repeat password" autocomplete="new-password"
+        <input type="password" id="app-reset-confirm" autocomplete="new-password"
           style="width:100%;padding:12px 44px 12px 14px;border:1.5px solid #E0D0B0;border-radius:12px;font-size:15px;font-family:Inter,sans-serif;color:#2C1F0A;outline:none;box-sizing:border-box;">
         <button type="button" onclick="togglePw('app-reset-confirm',this)"
           style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#A07040;padding:4px;display:flex;align-items:center;" tabindex="-1">
@@ -2952,12 +2944,12 @@ function _openPasswordResetWhenReady(){
     <div style="padding:20px;">
       <div style="margin-bottom:14px;">
         <label style="font-size:12px;font-weight:700;color:var(--text3);display:block;margin-bottom:6px;">Email</label>
-        <input type="email" id="ias-email" placeholder="your@email.com" autocomplete="email"
+        <input type="email" id="ias-email" autocomplete="email"
           style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:'Inter',sans-serif;color:var(--text);background:var(--surface2);outline:none;box-sizing:border-box;">
       </div>
       <div style="margin-bottom:6px;">
         <label style="font-size:12px;font-weight:700;color:var(--text3);display:block;margin-bottom:6px;">Password</label>
-        <input type="password" id="ias-password" placeholder="Password" autocomplete="current-password"
+        <input type="password" id="ias-password" autocomplete="current-password"
           style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:'Inter',sans-serif;color:var(--text);background:var(--surface2);outline:none;box-sizing:border-box;">
       </div>
       <div id="ias-error" style="font-size:12px;color:#B03020;margin-bottom:10px;display:none;"></div>
@@ -4620,6 +4612,23 @@ function handleBleData(event){
           model:    parts.model    || 'VirtusScale',
           serial:   parts.serial   || 'N/A'
         });
+        // Sync calibration state FROM the firmware (single source of truth)
+        if(parts.cal){
+          var fwCal = parseFloat(parts.cal);
+          if(!isNaN(fwCal) && fwCal > 0){
+            _calFactor = fwCal;
+            var dc = document.getElementById('dev-calibration');
+            if(dc) dc.textContent = _calFactor.toFixed(4);
+          }
+        }
+        if(parts.sens){
+          var se = document.getElementById('dev-sensitivity');
+          if(se) se.textContent = parts.sens + ' mV/V';
+        }
+        if(parts.cap){
+          var ce = document.getElementById('dev-capacity');
+          if(ce) ce.textContent = parts.cap + ' kg';
+        }
         return;
       }
 
@@ -4748,6 +4757,113 @@ function handleOtaResponse(msg){
     if(sub){ sub.style.display=''; sub.textContent='Checking for update…'; sub.style.color='var(--text3)'; }
   } else if(msg === 'OTA_NO_UPDATE'){
     showToast('Already on latest firmware','success');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  WEB BLUETOOTH DFU — Nordic legacy DFU (Adafruit nRF52 bootloader)
+//  Connects DIRECTLY to a board already in bootloader mode (AdaDFU) —
+//  double-tap reset first — so we skip the flaky app→bootloader handoff.
+//  Works in Chrome (desktop / Android). Not iOS Safari (no Web BT).
+// ═══════════════════════════════════════════════════════════════════
+var DFU_SVC   = '00001530-1212-efde-1523-785feabcd123';
+var DFU_CTRL  = '00001531-1212-efde-1523-785feabcd123'; // control point (write+notify)
+var DFU_PKT   = '00001532-1212-efde-1523-785feabcd123'; // packet (write-no-response)
+var DFU_BASE  = 'https://raw.githubusercontent.com/jasonfriesen5/Virtus-Farmware/main/';
+
+var _dfuBusy = false;
+function _dfuStatus(msg, color){
+  var el = document.getElementById('dfu-sub');
+  if(el){ el.textContent = msg; el.style.color = color || 'var(--text3)'; }
+}
+
+// wait for one notification on the control point, resolves with the DataView
+function _dfuWaitNotif(ctrl, timeoutMs){
+  return new Promise(function(resolve, reject){
+    var to = setTimeout(function(){ ctrl.removeEventListener('characteristicvaluechanged', h); reject(new Error('timeout waiting for response')); }, timeoutMs||10000);
+    function h(e){ clearTimeout(to); ctrl.removeEventListener('characteristicvaluechanged', h); resolve(e.target.value); }
+    ctrl.addEventListener('characteristicvaluechanged', h);
+  });
+}
+function _expectOk(dv, expectOp){
+  // response format: [0x10, requestOp, statusCode(0x01=success)]
+  if(dv.getUint8(0)!==0x10 || dv.getUint8(1)!==expectOp || dv.getUint8(2)!==0x01)
+    throw new Error('DFU error: op='+dv.getUint8(1)+' status='+dv.getUint8(2));
+}
+function _sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+async function startWebDfu(){
+  if(_dfuBusy) return;
+  if(!navigator.bluetooth){ showToast('Web Bluetooth needs Chrome (desktop/Android)','error'); return; }
+  _dfuBusy = true;
+  var btn = document.getElementById('btn-dfu'); if(btn){ btn.disabled=true; btn.textContent='...'; }
+  try{
+    // 1. Fetch firmware image + init packet from GitHub
+    _dfuStatus('Downloading firmware…');
+    var meta = await (await fetch(DFU_BASE+'version.json?t='+Date.now(),{cache:'no-store'})).json();
+    var binBuf = await (await fetch(DFU_BASE+(meta.bin||'firmware.bin')+'?t='+Date.now(),{cache:'no-store'})).arrayBuffer();
+    var datBuf = await (await fetch(DFU_BASE+(meta.dat||'firmware.dat')+'?t='+Date.now(),{cache:'no-store'})).arrayBuffer();
+    var bin = new Uint8Array(binBuf), dat = new Uint8Array(datBuf);
+
+    // 2. Connect to the board sitting in bootloader mode
+    _dfuStatus('Select your scale (in DFU mode)…');
+    var dev = await navigator.bluetooth.requestDevice({ filters:[{services:[DFU_SVC]}], optionalServices:[DFU_SVC] });
+    _dfuStatus('Connecting…');
+    var server = await dev.gatt.connect();
+    var svc  = await server.getPrimaryService(DFU_SVC);
+    var ctrl = await svc.getCharacteristic(DFU_CTRL);
+    var pkt  = await svc.getCharacteristic(DFU_PKT);
+    await ctrl.startNotifications();
+
+    // 3. START DFU, application only (image type 0x04)
+    _dfuStatus('Starting transfer…');
+    await ctrl.writeValue(new Uint8Array([0x01, 0x04]));
+    // sizes: SD=0, BL=0, app=bin.length  (3 × uint32 LE)
+    var sizes = new DataView(new ArrayBuffer(12));
+    sizes.setUint32(0, 0, true); sizes.setUint32(4, 0, true); sizes.setUint32(8, bin.length, true);
+    await pkt.writeValueWithoutResponse(sizes.buffer);
+    _expectOk(await _dfuWaitNotif(ctrl), 0x01);
+
+    // 4. Init packet (.dat)
+    await ctrl.writeValue(new Uint8Array([0x02, 0x00]));   // receive init
+    await pkt.writeValueWithoutResponse(dat.buffer);
+    await ctrl.writeValue(new Uint8Array([0x02, 0x01]));   // init complete
+    _expectOk(await _dfuWaitNotif(ctrl), 0x02);
+
+    // 5. Disable packet-receipt notifications (we pace manually)
+    await ctrl.writeValue(new Uint8Array([0x08, 0x00, 0x00]));
+    // 6. Receive firmware image
+    await ctrl.writeValue(new Uint8Array([0x03]));
+
+    // 7. Stream the image in 20-byte packets, pacing to avoid overflow
+    var MTU = 20, total = bin.length, sent = 0;
+    while(sent < total){
+      var end = Math.min(sent+MTU, total);
+      await pkt.writeValueWithoutResponse(bin.slice(sent, end).buffer);
+      sent = end;
+      if((sent % (MTU*20)) === 0){                       // brief breather every ~400 B
+        await _sleep(6);
+        _dfuStatus('Installing… '+Math.round(sent/total*100)+'%', '#2D9D5C');
+      }
+    }
+    _expectOk(await _dfuWaitNotif(ctrl, 20000), 0x03);   // image received
+
+    // 8. Validate, then activate + reset
+    _dfuStatus('Verifying…');
+    await ctrl.writeValue(new Uint8Array([0x04]));
+    _expectOk(await _dfuWaitNotif(ctrl, 20000), 0x04);
+    await ctrl.writeValue(new Uint8Array([0x05]));       // activate & reset (no response expected)
+
+    _dfuStatus('✓ Updated to v'+(meta.version||'?')+' — scale restarting', '#2D9D5C');
+    showToast('Firmware updated — scale is restarting','success');
+    try{ dev.gatt.disconnect(); }catch(e){}
+  }catch(err){
+    console.warn('DFU failed:', err);
+    _dfuStatus('Update failed: '+(err.message||err)+' — double-tap reset & retry', '#B03020');
+    showToast('DFU failed: '+(err.message||err),'error');
+  }finally{
+    _dfuBusy = false;
+    var b = document.getElementById('btn-dfu'); if(b){ b.disabled=false; b.textContent='Update'; }
   }
 }
 
@@ -5018,7 +5134,7 @@ function updateBtPills(connected,name){
 
 function enableManualInput(){
   var _mWtUnit = wtUnit();
-document.getElementById('scale-hint').innerHTML='<input type="number" step="0.01" min="0" placeholder="Manual weight ('+_mWtUnit+')" style="margin-top:8px;width:180px;padding:9px 13px;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;font-size:16px;color:var(--text);font-family:Inter,sans-serif;text-align:center;outline:none;" oninput="setRawWeightFromInput(this.value)">';
+document.getElementById('scale-hint').innerHTML='<input type="number" step="0.01" min="0" style="margin-top:8px;width:180px;padding:9px 13px;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;font-size:16px;color:var(--text);font-family:Inter,sans-serif;text-align:center;outline:none;" oninput="setRawWeightFromInput(this.value)">';
 }
 
 // Cache DOM refs for scale display — looked up once, not on every tick
@@ -6026,7 +6142,7 @@ function renderFarmFieldPicker(){
   inlineForm.id = 'ffp-add-form-inline';
   inlineForm.innerHTML =
     '<div class="ffp-add-form-row">'+
-    '<input type="text" id="ffp-farm-input" placeholder="Farm name..." autocomplete="off">'+
+    '<input type="text" id="ffp-farm-input" autocomplete="off">'+
     '</div>';
   var confirmBtn = document.createElement('button');
   confirmBtn.className = 'ffp-confirm-btn';
@@ -6839,6 +6955,7 @@ var auStableS = 8;     // seconds stable to confirm unload complete
 var auStableHz = 0.5;  // kg/s max change to be considered "stable"
 
 function _auTickWithStable(rawW, fwStable){
+  if(_appMode !== 'primary') return;  // auto-unload runs ONLY on the primary display
   if(auDropKg === 0) return;
   if(!btDevice) return;
   if(_auState === 'manual_unloading') return;
@@ -6848,9 +6965,20 @@ function _auTickWithStable(rawW, fwStable){
   var cutoffT = nowT - (auWindowS * 1000);
   _auWindowSamples = _auWindowSamples.filter(function(s){ return s.t >= cutoffT; });
 
-  // Use firmware stable flag to update peak weight (more reliable than app-side detection)
-  if(_auState === 'idle' && fwStable && rawW > 50){
-    if(_auPeakWeight === null || rawW > _auPeakWeight){
+  // Establish the pre-unload peak weight. Prefer the firmware's stable
+  // flag, but fall back to an app-side rolling-window check so the peak
+  // still establishes on a jittery cart that never reports "stable".
+  if(_auState === 'idle' && rawW > 50){
+    var settled = fwStable;
+    if(!settled){
+      var pw = _auWindowSamples.filter(function(s){ return s.t >= nowT - 3000; });
+      if(pw.length >= 3){
+        var pmin = pw.reduce(function(a,b){ return a.w<b.w?a:b; }).w;
+        var pmax = pw.reduce(function(a,b){ return a.w>b.w?a:b; }).w;
+        settled = (pmax - pmin) < 20.0;
+      }
+    }
+    if(settled && (_auPeakWeight === null || rawW > _auPeakWeight)){
       _auPeakWeight = rawW;
       _auPeakTime   = nowT;
     }
@@ -6893,6 +7021,7 @@ function _auCheckStableWithFlag(rawW, fwStable){
 }
 
 function _auTick(rawW){
+  if(_appMode !== 'primary') return; // auto-unload runs ONLY on the primary display
   if(auDropKg === 0) return; // auto-unload disabled
   if(!btDevice) return; // only run when scale connected
   if(_auState === 'manual_unloading') return; // manual unload active — don't auto-detect
@@ -8123,6 +8252,50 @@ function calCopyFromScale(){
   showToast('Live weight copied','success');
 }
 
+// ── Help texts for the ⓘ icons ──
+var _INFO_TEXTS = {
+  sens: {title:'Sensitivity (mV/V)',
+    msg:'How much signal the load cells produce at full rated load, per volt of excitation. It is printed on the load cell datasheet — 2.0 mV/V is the most common. All cells in one scale should match. Changing this rescales the raw reading, so recalibrate with a known weight afterwards.'},
+  cap: {title:'Rated Capacity',
+    msg:'The combined rated capacity of ALL load cells, in kg. Example: 4 cells of 5000 kg each = 20000. This sets the scale\'s expected full range. Changing it rescales the raw reading, so recalibrate with a known weight afterwards.'},
+  certified: {title:'Certified Weight',
+    msg:'The true weight of your test load — from a certified scale ticket or known test weights. Used together with the Scale Reading to calculate the calibration factor.'},
+  reading: {title:'Scale Reading',
+    msg:'What this scale shows for that same test load, before correction. Use the copy button to fill it from the live reading while the load is on the scale.'},
+  factor: {title:'Calibration Factor',
+    msg:'The correction multiplier stored inside the scale: displayed weight = raw reading × factor. It is calculated from Certified Weight ÷ Scale Reading, or you can type one directly. It is saved in the scale\'s own memory and survives power-off.'}
+};
+function showInfoDialog(key){
+  var t = _INFO_TEXTS[key]; if(!t) return;
+  showConfirm({icon:'ℹ️', title:t.title, msg:t.msg, okLabel:'Got it', okColor:'#2E7FD4', cancelLabel:'Close'});
+}
+
+// ── Edit sensitivity / capacity from Device Info (firmware-backed) ──
+function editSensitivity(){
+  if(!btRxChar){ showToast('Connect to the scale first','warn'); return; }
+  var cur = ((document.getElementById('dev-sensitivity')||{}).textContent||'').replace(' mV/V','');
+  var v = prompt('Load cell sensitivity (mV/V):', (cur && cur !== 'N/A') ? cur : '2.0');
+  if(v === null) return;
+  var f = parseFloat(v);
+  if(isNaN(f) || f < 0.1 || f > 10){ showToast('Enter a value between 0.1 and 10 mV/V','error'); return; }
+  sendBleCommand('SENS:'+f);
+  var el = document.getElementById('dev-sensitivity');
+  if(el) el.textContent = f.toFixed(2) + ' mV/V';
+  showToast('Sensitivity set — recalibrate with a known weight','success');
+}
+function editCapacity(){
+  if(!btRxChar){ showToast('Connect to the scale first','warn'); return; }
+  var cur = ((document.getElementById('dev-capacity')||{}).textContent||'').replace(' kg','');
+  var v = prompt('Total rated capacity of all load cells (kg):', (cur && cur !== 'N/A') ? cur : '1000');
+  if(v === null) return;
+  var f = parseFloat(v);
+  if(isNaN(f) || f < 1 || f > 200000){ showToast('Enter a capacity between 1 and 200000 kg','error'); return; }
+  sendBleCommand('CAP:'+f);
+  var el = document.getElementById('dev-capacity');
+  if(el) el.textContent = Math.round(f) + ' kg';
+  showToast('Capacity set — recalibrate with a known weight','success');
+}
+
 function calculateCalibration(){
   var certified = parseFloat(document.getElementById('cal-certified').value);
   var scaleRead  = parseFloat(document.getElementById('cal-scale-reading').value);
@@ -8130,21 +8303,23 @@ function calculateCalibration(){
   if(!certified || certified <= 0){ showToast('Enter the certified (true) weight','warn'); return; }
   if(!scaleRead  || scaleRead  <= 0){ showToast('Enter what the scale is reading','warn'); return; }
 
-  var factor = certified / scaleRead;
-  _calFactor = parseFloat(factor.toFixed(4));
-  // Firmware owns calibration — push the new factor to the scale now
+  // ratio = how far off the CURRENT (already-calibrated) reading is.
+  // The firmware's factor must be COMPOUNDED, not replaced — otherwise
+  // every recalibration would wipe out the previous one.
+  var ratio = certified / scaleRead;
+  _calFactor = parseFloat((_calFactor * ratio).toFixed(4));
   sendBleCommand('CAL:'+_calFactor.toFixed(4));
   if(rawWeight !== null) _paintScaleDisplay();
 
   document.getElementById('dev-calibration').textContent = _calFactor.toFixed(4);
   var note = document.getElementById('cal-result-note');
   if(note){
-    if(Math.abs(factor - 1.0) < 0.001){
+    if(Math.abs(ratio - 1.0) < 0.001){
       note.textContent = 'Scale is perfectly calibrated ✓';
-    } else if(factor > 1.0){
-      note.textContent = 'Scale reading low by '+(((factor-1)*100).toFixed(2))+'%';
+    } else if(ratio > 1.0){
+      note.textContent = 'Scale reading low by '+(((ratio-1)*100).toFixed(2))+'%';
     } else {
-      note.textContent = 'Scale reading high by '+((((1-factor))*100).toFixed(2))+'%';
+      note.textContent = 'Scale reading high by '+((((1-ratio))*100).toFixed(2))+'%';
     }
   }
   showToast('Factor: '+_calFactor,'success');
@@ -8156,23 +8331,9 @@ function saveCalibrationSettings(){
   var sheetFactor = (document.getElementById('cal-factor-display-sheet')||{}).textContent;
   var compactFactor = document.getElementById('dev-calibration');
   if(compactFactor && sheetFactor && sheetFactor !== '—') compactFactor.textContent = sheetFactor;
-  var sensitivity = document.getElementById('cal-sensitivity').value;
-  var ratedCap    = document.getElementById('cal-rated-capacity').value;
-
-  // Save to localStorage
-  localStorage.setItem('ht_cal_factor',      _calFactor);
-  localStorage.setItem('ht_cal_sensitivity',  sensitivity);
-  localStorage.setItem('ht_cal_rated_cap',    ratedCap);
-
-  // Update the device info panel values
-  if(sensitivity){
-    var el = document.getElementById('dev-sensitivity');
-    if(el) el.textContent = sensitivity + ' mV/V';
-  }
-  if(ratedCap){
-    var el2 = document.getElementById('dev-capacity');
-    if(el2) el2.textContent = ratedCap + ' ' + getUnits().weight;
-  }
+  // Sensitivity / capacity now live in Device Info, reported by the
+  // firmware (INFO packet) — the sheet only handles the weight factor.
+  localStorage.setItem('ht_cal_factor', _calFactor);
 
   if(rawWeight !== null) _paintScaleDisplay();
   showToast('Calibration settings saved','success');
@@ -8189,14 +8350,7 @@ function loadCalibrationSettings(){
     var di = document.getElementById('cal-factor-direct-input');
     if(di) di.value = _calFactor.toFixed(4);
   }
-  if(sens){
-    var el2 = document.getElementById('cal-sensitivity');
-    if(el2) el2.value = sens;
-  }
-  if(cap){
-    var el3 = document.getElementById('cal-rated-capacity');
-    if(el3) el3.value = cap;
-  }
+  // sens/cap now come from the firmware INFO packet, not localStorage
 }
 
 
@@ -10536,7 +10690,7 @@ function updateGPSPill(state){
 }
 
 function logEntry(){
-  if(!currentWorker){showToast('Not logged in','error');return;}
+  // Login is only required to SYNC — always save locally first, sync later
   if(!currentSeason){showToast('Select a season first','warn');openMorePanel('season');return;}
   if(rawWeight===null){showToast('No weight reading','error');return;}
   var net=Math.max(0,rawWeight-tareOffset);
@@ -10548,7 +10702,7 @@ function logEntry(){
   }
   // During auto-unload, use the unloaded amount as the weight
   if(net<=0 && (_auState==='unloading'||_auState==='stabilising') && _auWeightBefore!==null){
-    net = Math.max(0, _auWeightBefore - Math.max(0, rawWeight)) * (_calFactor||1.0);
+    net = Math.max(0, _auWeightBefore - Math.max(0, rawWeight)); // firmware already sends calibrated kg
     if(net < 50){ showToast('Unloaded weight too small','warn'); return; }
   }
   var cropEl=document.getElementById('f-crop');
@@ -10560,11 +10714,11 @@ function logEntry(){
   var notesEl=document.getElementById('f-notes');
   var buggyEl=document.getElementById('f-buggy');
   var now=new Date();
-  // Apply calibration factor to the saved weight
-  var calibratedWeight = parseFloat((net * (_calFactor || 1.0)).toFixed(2));
+  // Firmware already sends calibrated kg
+  var calibratedWeight = parseFloat(net.toFixed(2));
   var entry={
     id:uid(),
-    worker:currentWorker.name,
+    worker:currentWorker?currentWorker.name:'Unassigned',
     farm:selectedFarm?selectedFarm.name:'Unknown',
     buggy:selectedTruck?selectedTruck.name:((buggyEl?buggyEl.value.trim():'')||'Unset'),
     crop:cropVal,
@@ -10584,6 +10738,7 @@ function logEntry(){
     lng:lastGPSLng,
     gpsAccuracy:lastGPSAccuracy,
     gpsStatus:lastGPSLat?'ok':'none',
+    seasonId: currentSeason ? currentSeason.id : null,
     truckId: selectedTruck ? selectedTruck.id : null,
     deliveredTo: null,    // filled in when truck is emptied
     synced:false
@@ -10648,6 +10803,14 @@ async function syncQueue(){
     updateCloudPanel();
     refreshQueue();
     showToast('All records synced ✓','success');
+    return;
+  }
+
+  // Not signed in → keep everything queued locally, don't attempt upload.
+  // Records stay safe and will sync once the operator logs in.
+  if(_sbQ && (!currentWorker || !currentWorker.id)){
+    refreshQueue();
+    showToast(queue.length+' saved locally — sign in to upload','warn');
     return;
   }
 
@@ -10799,7 +10962,6 @@ function renderLogs(){
 }
 
 function updateSessionTotal(){
-  if(!currentWorker)return;
   updateSessionDisplay();
 }
 
@@ -10891,8 +11053,8 @@ function openUnloadModal(){
     return;
   }
 
-  // Check we have a weight to start from
-  var calibNet = Math.max(0, rawWeight - tareOffset) * (_calFactor || 1.0);
+  // Check we have a weight to start from (firmware already sends calibrated kg)
+  var calibNet = Math.max(0, rawWeight - tareOffset);
   if(calibNet <= 0){ showToast('Weight is zero — check tare','warn'); return; }
 
   // Start manual unload tracking
@@ -10914,7 +11076,8 @@ function openUnloadModal(){
 
 function _confirmManualUnload(){
   // Allow negative final weight — 600 start, goes to -300 = 900kg unloaded
-  var calibFinalW = (rawWeight - tareOffset) * (_calFactor || 1.0);
+  // (firmware already sends calibrated kg)
+  var calibFinalW = (rawWeight - tareOffset);
   var unloadedKg  = Math.max(0, _auWeightBefore - calibFinalW);
 
   if(unloadedKg < 10){ showToast('No weight change detected','warn'); _cancelManualUnload(); return; }
@@ -11074,10 +11237,10 @@ function updateWeighDisplay(){
 }
 
 function updateSessionDisplay(){
-  if(!currentWorker) return;
   var today = new Date().toDateString();
   var logs = getSeasonLogs();
-  var todayLogs = logs.filter(function(l){ return new Date(l.timestamp).toDateString()===today && l.worker===currentWorker.name; });
+  var workerName = currentWorker ? currentWorker.name : 'Unassigned';
+  var todayLogs = logs.filter(function(l){ return new Date(l.timestamp).toDateString()===today && l.worker===workerName; });
   var total = todayLogs.reduce(function(s,l){ return s+l.weight; }, 0);
   var stEl=document.getElementById('session-total'); if(stEl) stEl.textContent=fmtWt(total,'');
   document.getElementById('ir-session-kg').textContent = fmtWt(total,'');
