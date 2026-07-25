@@ -1,6 +1,4 @@
 {
-  "version": "1.4.0",
-  "bin": "firmware.bin",
-  "dat": "firmware.dat",
-  "size": 149580
+  "version": "1.6.1",
+  "dfu": "virtus_scale_v1.6.1_dfu.zip"
 }
