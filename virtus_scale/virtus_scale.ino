@@ -27,7 +27,7 @@
 #endif
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.7.0"
+#define FIRMWARE_VERSION   "1.7.1"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "HarvestScale"   // matches app's scan filter
 #define MAX_CONNECTIONS    4                // simultaneous BLE clients
@@ -120,6 +120,9 @@ bool    haveReading   = false;
 bool    nauReady      = false;
 bool    nauSleeping   = false;   // NAU7802 parked in low-power while no BLE client
 bool    appPowerSave  = false;   // app asked us to idle (SLEEP) while still connected
+int32_t primaryConn   = -1;      // conn handle of the logging PRIMARY client (-1 = none)
+uint32_t rolesDueAt   = 0;       // when to (re)broadcast ROLE messages
+uint32_t lastRoleBcast= 0;       // last periodic role broadcast
 uint32_t lastNauRetry = 0;
 float   recentNet[STABLE_WINDOW];
 uint8_t recentIdx     = 0;
@@ -193,6 +196,57 @@ void bleSend(const String& s) {
     }
   }
   Serial.println(s);
+}
+
+// Send to a single connection (used for per-client ROLE assignment)
+void bleSendTo(uint16_t h, const String& s) {
+  if (!bleReady) return;
+  if (!Bluefruit.connected(h) || !bleuart.notifyEnabled(h)) return;
+  String line = s + "\n";
+  const uint8_t* p = (const uint8_t*)line.c_str();
+  size_t total = line.length();
+  BLEConnection* conn = Bluefruit.Connection(h);
+  size_t maxChunk = conn ? (size_t)(conn->getMtu() - 3) : 20;
+  for (size_t off = 0; off < total; off += maxChunk) {
+    size_t n = total - off; if (n > maxChunk) n = maxChunk;
+    bleuart.write(h, p + off, n);
+  }
+}
+
+// ── PRIMARY / REMOTE role arbitration ──
+// The scale is the single authority: the first client to connect is the
+// PRIMARY (the one allowed to log transactions / auto-unload); every other
+// client is a view-only REMOTE. This prevents two phones both saving the same
+// unload. Roles are pushed to each client so the app can enforce them.
+int32_t firstConnectedExcept(int32_t except) {
+  for (uint16_t h = 0; h < BLE_MAX_CONNECTION; h++) {
+    if ((int32_t)h == except) continue;
+    if (Bluefruit.connected(h)) return (int32_t)h;
+  }
+  return -1;
+}
+void ensurePrimary() {
+  // If the primary slot is empty or its client has gone, promote the
+  // first remaining connected client.
+  if (primaryConn < 0 || !Bluefruit.connected((uint16_t)primaryConn)) {
+    primaryConn = firstConnectedExcept(-1);
+  }
+}
+void broadcastRoles() {
+  ensurePrimary();
+  for (uint16_t h = 0; h < BLE_MAX_CONNECTION; h++) {
+    if (!Bluefruit.connected(h) || !bleuart.notifyEnabled(h)) continue;
+    bleSendTo(h, ((int32_t)h == primaryConn) ? "ROLE:primary" : "ROLE:remote");
+  }
+}
+
+// Request a connection interval (units of 1.25 ms) on every live connection.
+void setAllConnInterval(uint16_t units) {
+  for (uint16_t h = 0; h < BLE_MAX_CONNECTION; h++) {
+    if (!Bluefruit.connected(h)) continue;
+    BLEConnection* c = Bluefruit.Connection(h);
+    if (c) c->requestConnectionParameter(units);
+  }
 }
 
 void sendInfo() {
@@ -452,16 +506,24 @@ void handleCommand(String cmd) {
   }
   else if (cmd == "RESET")                     NVIC_SystemReset();
   else if (cmd == "SLEEP") {
-    // App-requested power saving: stay connected but park the ADC and idle
-    // the loop until a WAKE arrives. Saves module battery when the phone's
-    // screen has been inactive for a while.
+    // App-requested power saving: stay connected but park the ADC, idle the
+    // loop, AND stretch the connection interval way out so the radio barely
+    // wakes. Saves module battery when the phone's screen has been inactive.
     appPowerSave = true;
     if (nauReady && !nauSleeping) { nau.powerDown(); nauSleeping = true; }
+    setAllConnInterval(400);         // ~500 ms while asleep
     bleSend("STATUS:powersave=1");
   }
   else if (cmd == "WAKE") {
     appPowerSave = false;
+    setAllConnInterval(96);          // back to ~120 ms responsive
     bleSend("STATUS:powersave=0");   // loop re-inits the NAU on the next pass
+  }
+  else if (cmd == "HANDOFF") {
+    // Current primary steps down — promote another connected client (if any).
+    int32_t other = firstConnectedExcept(primaryConn);
+    if (other >= 0) primaryConn = other;
+    rolesDueAt = millis() + 50;      // re-broadcast the new assignment
   }
 }
 
@@ -488,10 +550,22 @@ volatile uint32_t infoDueAt = 0;   // when to volunteer INFO+STATUS after a conn
 void connectCallback(uint16_t conn_hdl) {
   (void)conn_hdl;
   advRestartPending = true;
+  // First client in becomes primary; the assignment is (re)broadcast a moment
+  // later once the notification pipe is open.
+  if (primaryConn < 0) primaryConn = (int32_t)conn_hdl;
   // the app's own INFO/STATUS request often races the notification
   // setup and its one-shot reply gets lost — send them unsolicited
   // once the pipe has had time to open
   infoDueAt = millis() + 2500;
+  rolesDueAt = millis() + 2600;
+}
+
+void disconnectCallback(uint16_t conn_hdl, uint8_t reason) {
+  (void)reason;
+  // If the primary left, free the slot so another client is promoted on the
+  // next broadcast.
+  if ((int32_t)conn_hdl == primaryConn) primaryConn = -1;
+  rolesDueAt = millis() + 400;
 }
 
 void setup() {
@@ -525,8 +599,12 @@ void setup() {
   // Ask for a relaxed connection interval (90–150 ms). The radio wakes far
   // less often while connected; the live weight still refreshes ~7–10×/s.
   Bluefruit.Periph.setConnInterval(72, 120);   // units of 1.25 ms
+  // Kill the onboard blue "connection" LED — it sits solid-on the whole time
+  // a phone is connected (incl. overnight sleep) and wastes ~1–2 mA.
+  Bluefruit.autoConnLed(false);
   Bluefruit.setName(BLE_NAME);
   Bluefruit.Periph.setConnectCallback(connectCallback);
+  Bluefruit.Periph.setDisconnectCallback(disconnectCallback);
 
 #ifdef PIN_NEOPIXEL
   statusPixel.begin();
@@ -569,6 +647,14 @@ void loop() {
     infoDueAt = 0;
     sendInfo();
     sendStatus();
+  }
+
+  // Push PRIMARY/REMOTE role assignments: once shortly after a connect/
+  // disconnect (rolesDueAt), plus a cheap self-healing rebroadcast every 7 s.
+  if (rolesDueAt && millis() > rolesDueAt) { rolesDueAt = 0; broadcastRoles(); }
+  if (Bluefruit.connected() && millis() - lastRoleBcast > 7000) {
+    lastRoleBcast = millis();
+    broadcastRoles();
   }
 
   pollBleRx();
