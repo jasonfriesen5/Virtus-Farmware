@@ -25,11 +25,13 @@
 #ifdef PIN_NEOPIXEL
   #include <Adafruit_NeoPixel.h>
 #endif
+#include "uECC.h"      // ECDSA P-256 signing for the app<->scale auth handshake
+#include "sha256.h"
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.7.1"
+#define FIRMWARE_VERSION   "1.7.2"
 #define MODEL_NAME         "VirtusScale"
-#define BLE_NAME           "HarvestScale"   // matches app's scan filter
+#define BLE_NAME           "Virtus Scale"   // advertised name (app scans by NUS UUID + name prefix)
 #define MAX_CONNECTIONS    4                // simultaneous BLE clients
 
 // I2C pins the NAU7802 is wired to. Defaults to the selected board's
@@ -246,6 +248,58 @@ void setAllConnInterval(uint16_t units) {
     if (!Bluefruit.connected(h)) continue;
     BLEConnection* c = Bluefruit.Connection(h);
     if (c) c->requestConnectionParameter(units);
+  }
+}
+
+// ── App<->scale authentication (anti-clone) ──
+// The scale proves it is genuine by signing the app's random challenge with
+// this device private key (ECDSA P-256). The app verifies with the matching
+// public key it carries. A counterfeit scale has no way to produce the key.
+static const uint8_t AUTH_PRIV[32] = {
+  0x27,0xd2,0x13,0x03,0x66,0xf4,0xea,0xf2,0x50,0xed,0x55,0x4a,0xdd,0x09,0x75,0x62,
+  0xbe,0xe4,0x64,0x11,0x35,0xc1,0xac,0x3c,0x64,0xe9,0x6f,0x82,0xae,0x8a,0x60,0xaa
+};
+// uECC RNG — the nRF hardware RNG via the SoftDevice.
+extern "C" int auth_rng(uint8_t* dest, unsigned size) {
+  while (size) {
+    uint8_t avail = 0;
+    sd_rand_application_bytes_available_get(&avail);
+    if (avail == 0) continue;
+    uint8_t n = size < avail ? size : avail;
+    if (sd_rand_application_vector_get(dest, n) != NRF_SUCCESS) continue;
+    dest += n; size -= n;
+  }
+  return 1;
+}
+static int authHexVal(char c) {
+  if (c >= '0' && c <= '9') return c - '0';
+  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+  if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+  return 0;
+}
+static int authHexToBytes(const String& s, uint8_t* out, int maxOut) {
+  int n = s.length() / 2; if (n > maxOut) n = maxOut;
+  for (int i = 0; i < n; i++) out[i] = (authHexVal(s[2*i]) << 4) | authHexVal(s[2*i+1]);
+  return n;
+}
+static String authBytesToHex(const uint8_t* b, int n) {
+  static const char H[] = "0123456789abcdef";
+  String s; s.reserve(n * 2);
+  for (int i = 0; i < n; i++) { s += H[b[i] >> 4]; s += H[b[i] & 0xF]; }
+  return s;
+}
+// Reply "AUTHR:<nonceHex>:<sigHex>" — the nonce is echoed so each connected
+// app matches the answer to its own challenge (broadcast is fine).
+void handleAuth(const String& nonceHex) {
+  uint8_t nonce[64];
+  int nl = authHexToBytes(nonceHex, nonce, sizeof(nonce));
+  if (nl < 8) { bleSend("AUTHR:" + nonceHex + ":err"); return; }
+  uint8_t hash[32]; sha256(nonce, nl, hash);
+  uint8_t sig[64];
+  if (uECC_sign(AUTH_PRIV, hash, 32, sig, uECC_secp256r1())) {
+    bleSend("AUTHR:" + nonceHex + ":" + authBytesToHex(sig, 64));
+  } else {
+    bleSend("AUTHR:" + nonceHex + ":err");
   }
 }
 
@@ -525,6 +579,9 @@ void handleCommand(String cmd) {
     if (other >= 0) primaryConn = other;
     rolesDueAt = millis() + 50;      // re-broadcast the new assignment
   }
+  else if (cmd.startsWith("AUTH:")) {
+    handleAuth(cmd.substring(5));    // sign the app's challenge, prove genuine
+  }
 }
 
 void pollBleRx() {
@@ -605,6 +662,7 @@ void setup() {
   Bluefruit.setName(BLE_NAME);
   Bluefruit.Periph.setConnectCallback(connectCallback);
   Bluefruit.Periph.setDisconnectCallback(disconnectCallback);
+  uECC_set_rng(&auth_rng);     // hardware RNG for ECDSA signing (SoftDevice up)
 
 #ifdef PIN_NEOPIXEL
   statusPixel.begin();
