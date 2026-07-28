@@ -22,9 +22,12 @@
 #include <SparkFun_Qwiic_Scale_NAU7802_Arduino_Library.h>
 #include <Adafruit_LittleFS.h>
 #include <InternalFileSystem.h>
+#ifdef PIN_NEOPIXEL
+  #include <Adafruit_NeoPixel.h>
+#endif
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.4.0"
+#define FIRMWARE_VERSION   "1.7.0"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "HarvestScale"   // matches app's scan filter
 #define MAX_CONNECTIONS    4                // simultaneous BLE clients
@@ -59,7 +62,9 @@
 #define DEFAULT_SENS_MVV   2.0f      // load-cell sensitivity, mV/V
 #define DEFAULT_CAPACITY   1000.0f   // rated capacity, kg
 #define DEFAULT_CALFACTOR  1.0f
-#define DEFAULT_RESOLUTION 10.0f     // reported weight rounds to this (kg);
+#define DEFAULT_RESOLUTION 5.0f      // reported weight rounds to this (kg).
+                                     // 5 kg is the SAVED precision; the app
+                                     // coarsens the big display to ~10 kg.
                                      // change at runtime with RES:<kg>, e.g.
                                      // RES:0.1 for bench testing
 
@@ -73,6 +78,28 @@ NAU7802 nau;
 BLEUart  bleuart;
 BLEDis   bledis;
 BLEDfu   bledfu;    // OTA DFU entry service — lets nRF Connect flash updates
+#ifdef PIN_NEOPIXEL
+Adafruit_NeoPixel statusPixel(NEOPIXEL_NUM, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
+#endif
+
+// Status LED: brief flash so average power stays tiny.
+//   yellow heartbeat every 10 s = powered, no client
+//   double green flash          = a client just connected
+//   green heartbeat every 10 s  = connected
+void blinkPixel(uint8_t r, uint8_t g, uint8_t b, uint8_t count) {
+#ifdef PIN_NEOPIXEL
+  for (uint8_t i = 0; i < count; i++) {
+    statusPixel.setPixelColor(0, statusPixel.Color(r, g, b));
+    statusPixel.show();
+    delay(40);
+    statusPixel.clear();
+    statusPixel.show();
+    if (i + 1 < count) delay(140);
+  }
+#else
+  (void)r; (void)g; (void)b; (void)count;
+#endif
+}
 
 using namespace Adafruit_LittleFS_Namespace;
 #define CAL_FILE "/virtus_cal.dat"
@@ -91,6 +118,8 @@ float   countsPerKg   = 1.0f;
 int32_t rawFiltered   = 0;
 bool    haveReading   = false;
 bool    nauReady      = false;
+bool    nauSleeping   = false;   // NAU7802 parked in low-power while no BLE client
+bool    appPowerSave  = false;   // app asked us to idle (SLEEP) while still connected
 uint32_t lastNauRetry = 0;
 float   recentNet[STABLE_WINDOW];
 uint8_t recentIdx     = 0;
@@ -175,15 +204,36 @@ void sendInfo() {
           ",res=" + String(cal.resolution, 1));
 }
 
+// Single-cell LiPo state-of-charge from resting voltage. Real LiPo
+// discharge is flat through the middle and steep at the ends, so a
+// piecewise curve tracks true remaining capacity far better than a
+// straight 3.3–4.2 V line.
+int lipoPercent(float v) {
+  static const float vt[] = {3.30f,3.50f,3.60f,3.70f,3.75f,3.80f,3.85f,3.90f,3.95f,4.00f,4.10f,4.20f};
+  static const float pt[] = {0,    5,    12,   30,   42,   55,   66,   76,   84,   90,   96,   100};
+  const int n = 12;
+  if (v <= vt[0])   return 0;
+  if (v >= vt[n-1]) return 100;
+  for (int i = 1; i < n; i++) {
+    if (v < vt[i]) {
+      float f = (v - vt[i-1]) / (vt[i] - vt[i-1]);
+      return (int)(pt[i-1] + f * (pt[i] - pt[i-1]) + 0.5f);
+    }
+  }
+  return 100;
+}
+
 void sendStatus() {
   String s = "STATUS:";
   if (BATT_SENSE_PIN >= 0) {
     analogReference(AR_INTERNAL);      // 0.6 V ref × gain 1/6 → 3.6 V range
     analogReadResolution(12);
-    float vpin = analogRead(BATT_SENSE_PIN) * 3.6f / 4095.0f;
+    // average a few samples to steady the reading
+    uint32_t acc = 0;
+    for (uint8_t i = 0; i < 8; i++) acc += analogRead(BATT_SENSE_PIN);
+    float vpin = (acc / 8.0f) * 3.6f / 4095.0f;
     float vbat = vpin * BATT_DIVIDER;
-    int pct = (int)((vbat - 3.30f) / (4.20f - 3.30f) * 100.0f);
-    pct = constrain(pct, 0, 100);
+    int pct = constrain(lipoPercent(vbat), 0, 100);
     s += "batt=" + String(pct) + ",batt_v=" + String(vbat, 2) + ",";
   }
   s += "charging=0";
@@ -391,7 +441,28 @@ void handleCommand(String cmd) {
   else if (cmd == "STATUS")                    sendStatus();
   else if (cmd == "OTA_CHECK")                 bleSend("OTA_UP_TO_DATE");
   else if (cmd.startsWith("OTA_BEGIN"))        bleSend("OTA_ERR:use nRF52 DFU, not BLE-UART OTA");
+  else if (cmd == "DFU") {
+    // Enter the Nordic Secure-DFU bootloader for a wireless firmware
+    // update (GPREGRET = 0xB1 = enter-DFU magic, then reset).
+    bleSend("Entering DFU mode…");
+    delay(200);
+    sd_power_gpregret_clr(0, 0xFF);
+    sd_power_gpregret_set(0, 0xB1);
+    NVIC_SystemReset();
+  }
   else if (cmd == "RESET")                     NVIC_SystemReset();
+  else if (cmd == "SLEEP") {
+    // App-requested power saving: stay connected but park the ADC and idle
+    // the loop until a WAKE arrives. Saves module battery when the phone's
+    // screen has been inactive for a while.
+    appPowerSave = true;
+    if (nauReady && !nauSleeping) { nau.powerDown(); nauSleeping = true; }
+    bleSend("STATUS:powersave=1");
+  }
+  else if (cmd == "WAKE") {
+    appPowerSave = false;
+    bleSend("STATUS:powersave=0");   // loop re-inits the NAU on the next pass
+  }
 }
 
 void pollBleRx() {
@@ -443,9 +514,25 @@ void setup() {
   bleReady = Bluefruit.begin(MAX_CONNECTIONS, 0);
   Serial.println(bleReady ? "BLE stack started"
                           : "ERR: BLE stack failed to start (connection count too high?)");
-  Bluefruit.setTxPower(4);
+
+  // ── Power saving ──
+  // Run the radio through the internal DC/DC switching regulator (~halves
+  // radio current vs the LDO). The module has the required inductor.
+  sd_power_dcdc_mode_set(NRF_POWER_DCDC_ENABLE);
+  // 0 dBm is plenty for a phone a couple metres away in the cab and draws
+  // less than the +4 dBm max.
+  Bluefruit.setTxPower(0);
+  // Ask for a relaxed connection interval (90–150 ms). The radio wakes far
+  // less often while connected; the live weight still refreshes ~7–10×/s.
+  Bluefruit.Periph.setConnInterval(72, 120);   // units of 1.25 ms
   Bluefruit.setName(BLE_NAME);
   Bluefruit.Periph.setConnectCallback(connectCallback);
+
+#ifdef PIN_NEOPIXEL
+  statusPixel.begin();
+  statusPixel.clear();
+  statusPixel.show();
+#endif
 
   bledfu.begin();              // must start before other services
   bledis.setManufacturer("Virtus");
@@ -458,7 +545,9 @@ void setup() {
   Bluefruit.Advertising.addService(bleuart);   // app filters on NUS UUID
   Bluefruit.ScanResponse.addName();
   Bluefruit.Advertising.restartOnDisconnect(true);
-  Bluefruit.Advertising.setInterval(32, 244);
+  // fast (20ms) for the first 30s after boot/disconnect for quick discovery,
+  // then slow (1s) to save power while nobody is looking
+  Bluefruit.Advertising.setInterval(32, 1600);
   Bluefruit.Advertising.setFastTimeout(30);
   Bluefruit.Advertising.start(0);
 
@@ -492,9 +581,53 @@ void loop() {
     else if (serLine.length() < 64) serLine += c;
   }
 
+  bool connected = Bluefruit.connected();
+
+  // ── NeoPixel status heartbeat ──
+  static bool     ledWasConnected = false;
+  static uint32_t ledLastBlink    = 0;
+  if (connected && !ledWasConnected) {
+    blinkPixel(0, 40, 0, 2);           // just connected: 2 dim green blinks
+    ledLastBlink = millis();
+  }
+  ledWasConnected = connected;
+  // Dim, infrequent heartbeat to save battery: connected every 15 s,
+  // idle every 30 s. In app power-save (SLEEP) the LED goes quiet entirely.
+  uint32_t ledInterval = connected ? 15000 : 30000;
+  if (!appPowerSave && millis() - ledLastBlink >= ledInterval) {
+    ledLastBlink = millis();
+    if (connected) blinkPixel(0, 40, 0, 1);   // connected: dim green heartbeat
+    else           blinkPixel(45, 22, 0, 1);  // idle: dim yellow heartbeat
+  }
+
+  // ── No client connected: park the sensor and sleep deeply ──
+  // Nothing consumes weight data while disconnected, so drop the NAU7802
+  // to 200 nA and let the CPU sleep ~0.4 s at a time (radio still wakes
+  // on its own for advertising). This is the big idle-power saver.
+  if (!connected) {
+    if (nauReady && !nauSleeping) { nau.powerDown(); nauSleeping = true; }
+    delay(400);          // FreeRTOS idles the CPU during delay()
+    return;
+  }
+
+  // ── App-requested power saving: client stays connected but idle. Keep the
+  //    sensor parked and the loop slow until a WAKE command clears the flag
+  //    (pollBleRx above still runs, so WAKE is always received). ──
+  if (appPowerSave) {
+    if (nauReady && !nauSleeping) { nau.powerDown(); nauSleeping = true; }
+    delay(400);          // FreeRTOS idles the CPU during delay()
+    return;
+  }
+
+  // ── Client connected: wake the sensor if it was parked ──
+  if (nauSleeping) {
+    nauSleeping = false;
+    nauReady = nauInit();          // power up + re-calibrate
+    if (!nauReady) { delay(200); return; }
+  }
+
   // unsolicited status every 30 s keeps the app's battery pill fresh
-  // (must run even when the NAU7802 is missing)
-  if (Bluefruit.connected() && millis() - lastStatusMs > 30000) {
+  if (millis() - lastStatusMs > 30000) {
     lastStatusMs = millis();
     sendStatus();
   }
@@ -506,6 +639,7 @@ void loop() {
       nauReady = nauInit();
       if (!nauReady) bleSend("NAU7802 not found at 0x2A (SCAN to list bus)");
     }
+    delay(50);
     return;
   }
 
@@ -559,4 +693,9 @@ void loop() {
     bleSend("P:" + String(netR, 1) + ",L:" + String(grossR, 1) +
             ",S:" + (stable ? "1" : "0") + ",U:0");
   }
+
+  // pace the loop to ~40 Hz and let the CPU sleep in between. The
+  // NAU7802 samples at 10 SPS, so this still catches every reading and
+  // streams at 10 Hz, while the M4 core idles most of the time.
+  delay(25);
 }
