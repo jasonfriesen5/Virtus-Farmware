@@ -29,7 +29,7 @@
 #include "sha256.h"
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.7.2"
+#define FIRMWARE_VERSION   "1.7.3"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "Virtus Scale"   // advertised name (app scans by NUS UUID + name prefix)
 #define MAX_CONNECTIONS    4                // simultaneous BLE clients
@@ -181,6 +181,31 @@ bool bleReady = false;   // true once Bluefruit.begin() has succeeded
 // BLEUart::write sends ONE notification per call and silently drops
 // anything longer than the connection MTU allows — so slice every
 // line into MTU-sized chunks (clients reassemble on the newline).
+// Reliable per-connection write. A long line (e.g. the 167-char AUTHR reply)
+// gets split into MTU-sized chunks; on a busy/second connection — or a stack
+// that negotiated a small MTU, like Windows — firing them back-to-back can
+// overrun the radio's TX queue and drop a chunk. So we check each write's
+// result and retry (with a small gap) until the whole line is out. This is
+// what makes multi-device auth reliable.
+static void bleWriteChunks(uint16_t h, const uint8_t* p, size_t total) {
+  BLEConnection* conn = Bluefruit.Connection(h);
+  size_t maxChunk = conn ? (size_t)(conn->getMtu() - 3) : 20;
+  size_t off = 0;
+  uint32_t stuckSince = millis();
+  while (off < total) {
+    size_t n = total - off; if (n > maxChunk) n = maxChunk;
+    uint16_t wrote = bleuart.write(h, p + off, n);
+    if (wrote == 0) {                       // TX queue full — let it flush
+      if (millis() - stuckSince > 600) break;
+      delay(4);
+      continue;
+    }
+    off += wrote;
+    stuckSince = millis();
+    delay(2);                               // gap so each notification flushes
+  }
+}
+
 void bleSend(const String& s) {
   if (bleReady) {
     String line = s + "\n";
@@ -188,13 +213,7 @@ void bleSend(const String& s) {
     size_t total = line.length();
     for (uint16_t h = 0; h < BLE_MAX_CONNECTION; h++) {
       if (!Bluefruit.connected(h) || !bleuart.notifyEnabled(h)) continue;
-      BLEConnection* conn = Bluefruit.Connection(h);
-      size_t maxChunk = conn ? (size_t)(conn->getMtu() - 3) : 20;
-      for (size_t off = 0; off < total; off += maxChunk) {
-        size_t n = total - off;
-        if (n > maxChunk) n = maxChunk;
-        bleuart.write(h, p + off, n);
-      }
+      bleWriteChunks(h, p, total);
     }
   }
   Serial.println(s);
@@ -205,14 +224,7 @@ void bleSendTo(uint16_t h, const String& s) {
   if (!bleReady) return;
   if (!Bluefruit.connected(h) || !bleuart.notifyEnabled(h)) return;
   String line = s + "\n";
-  const uint8_t* p = (const uint8_t*)line.c_str();
-  size_t total = line.length();
-  BLEConnection* conn = Bluefruit.Connection(h);
-  size_t maxChunk = conn ? (size_t)(conn->getMtu() - 3) : 20;
-  for (size_t off = 0; off < total; off += maxChunk) {
-    size_t n = total - off; if (n > maxChunk) n = maxChunk;
-    bleuart.write(h, p + off, n);
-  }
+  bleWriteChunks(h, (const uint8_t*)line.c_str(), line.length());
 }
 
 // ── PRIMARY / REMOTE role arbitration ──

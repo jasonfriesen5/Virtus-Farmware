@@ -257,7 +257,7 @@ body{
 .log-gps-btn,.field-picker-btn,.tlb-empty-btn,.seg-btn.active,
 .fmap-locate-btn,.fmap-draw-btn,.fmap-filter-btn.active,.fdp-edit-btn,
 .cal-calc-btn,.btn-sel,.btn-edit-sm,.tx-btn-cancel,.etb-cancel,
-#mode-btn-primary,#mode-btn-remote,#dev-ota-btn,#tdp-edit-btn,#profile-auth-btn{
+#dev-ota-btn,#tdp-edit-btn,#profile-auth-btn{
   background:linear-gradient(180deg,rgba(255,255,255,0.92),rgba(252,248,241,0.80))!important;
   -webkit-backdrop-filter:blur(12px) saturate(160%);backdrop-filter:blur(12px) saturate(160%);
   color:var(--text)!important;
@@ -1798,7 +1798,8 @@ function _openPasswordResetWhenReady(){
       <div class="gps-pill gps-off" id="pill-gps" onclick="requestGPS()" title="Tap to enable GPS" style="display:none"><div class="gps-dot"></div><span id="pill-gps-txt">GPS</span></div>
       <div class="status-pill pill-offline" id="pill-net" style="display:none"><div class="pill-dot"></div><span id="pill-net-txt">Offline</span></div>
       <div class="status-pill pill-bt" id="pill-bt" style="display:none"><div class="pill-dot"></div><span id="pill-bt-txt">BT</span></div>
-      <div id="pill-remote" style="display:none;background:rgba(42,122,226,0.12);color:#1A5FA0;border:1px solid rgba(42,122,226,0.25);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;letter-spacing:0.04em;">REMOTE</div>
+      <!-- REMOTE indicator removed per user preference -->
+      <div id="pill-remote" style="display:none;"></div>
       <!-- Unsynced-count indicator beside the sync button -->
       <div class="unsynced-pill hidden" id="unsynced-pill" onclick="fullSync()" title="Weight of transactions saved on this device, not yet synced to the cloud"><span id="unsynced-count">0 kg</span> not synced</div>
       <!-- Sync circle -->
@@ -2132,7 +2133,7 @@ function _openPasswordResetWhenReady(){
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border-radius:14px;margin-bottom:8px;">
         <div>
           <div style="font-size:14px;font-weight:700;color:var(--text);">Connection Mode</div>
-          <div style="font-size:12px;color:var(--text3);" id="mode-sub-label">Primary (BLE)</div>
+          <div style="font-size:12px;color:var(--text3);display:none;" id="mode-sub-label"></div>
         </div>
         <div style="display:flex;gap:6px;">
           <button id="mode-btn-primary" onclick="setAppMode('primary');updateModeBtns();" style="padding:7px 14px;font-size:12px;font-weight:700;border-radius:20px;border:none;background:#2D9D5C;color:#fff;cursor:pointer;">Primary</button>
@@ -4473,6 +4474,7 @@ function showTab(id){
     var sa=document.getElementById('settings-avatar'); if(sa) sa.textContent=ini;
     var sn=document.getElementById('settings-name'); if(sn) sn.textContent=n||T('Not signed in');
     var sf=document.getElementById('settings-farm'); if(sf) sf.textContent=selectedFarm?selectedFarm.name:T('No farm selected');
+    if(typeof updateModeBtns==='function') updateModeBtns();  // reflect current mode on the buttons
   }
   if(id==='fields'){ fieldsGoBack(); renderFarms(); renderFields(); }
   if(id==='weigh'){
@@ -5178,7 +5180,7 @@ async function sendBleCommand(cmd){
 // counterfeit hardware. Enforcement is OBSERVE-ONLY until verified on flashed
 // v1.7.2 scales, then _authEnforce is flipped to true.
 var _AUTH_PUBKEY_HEX = "045e13092498d7f0fc59619d11dbdd06f791c7c3c70b44ed2c3a74b5c9e6ff74f55e78bbaeebd2adf5918d65ab580c2f46a16e5bd01a5eebe14005694ccead861d";
-var _authEnforce   = false;   // observe-only for now (does not block)
+var _authEnforce   = true;    // ENFORCED — unrecognized scales are blocked entirely
 var _scaleVerified = false;
 var _authNonceHex  = null;
 var _authTimer     = null;
@@ -5196,24 +5198,34 @@ function _startScaleAuth(){
   try{
     var nb = crypto.getRandomValues(new Uint8Array(16));
     _authNonceHex = _authBytesToHex(nb);
-    sendBleCommand('AUTH:'+_authNonceHex);
-    // resend once in case the first raced the notification pipe opening
-    setTimeout(function(){ if(!_scaleVerified && btRxChar) sendBleCommand('AUTH:'+_authNonceHex); }, 1500);
+    // Retry several times — the scale broadcasts its answer, and a second
+    // device's notification pipe or a chunk can be missed on the first try.
+    var tries = 0;
+    var fire = function(){
+      if(_scaleVerified || !btRxChar) return;
+      tries++;
+      console.log('[auth] sending challenge (try '+tries+') nonce='+_authNonceHex.substring(0,8)+'…');
+      sendBleCommand('AUTH:'+_authNonceHex);
+      if(tries < 6) setTimeout(fire, 1300);
+    };
+    fire();
     if(_authTimer) clearTimeout(_authTimer);
     _authTimer = setTimeout(function(){
-      if(!_scaleVerified){ console.warn('[auth] no valid response — scale unverified'); _applyAuthGate(); }
-    }, 5000);
+      if(!_scaleVerified){ console.warn('[auth] no valid response after retries — scale unverified'); _applyAuthGate(); }
+    }, 9000);
   }catch(e){ console.warn('[auth] start error', e); }
 }
 async function _handleAuthResponse(nonceHex, sigHex){
-  if(nonceHex !== _authNonceHex) return;   // not our challenge (multi-device)
-  if(sigHex === 'err' || sigHex.length !== 128){ _scaleVerified=false; console.warn('[auth] scale returned no signature'); _applyAuthGate(); return; }
+  console.log('[auth] AUTHR received: nonce='+nonceHex.substring(0,8)+'… mine='+(_authNonceHex?_authNonceHex.substring(0,8):'—')+'… siglen='+sigHex.length);
+  if(nonceHex !== _authNonceHex){ console.log('[auth] nonce mismatch — ignoring (meant for another device)'); return; }
+  if(sigHex === 'err' || sigHex.length !== 128){ console.warn('[auth] bad/short signature ('+sigHex.length+') — retrying'); return; }  // let retries continue
   try{
     var key = await _getAuthPubKey();
     var ok = await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'}, key, _authHexToBytes(sigHex), _authHexToBytes(nonceHex));
-    _scaleVerified = !!ok;
-    console.log('[auth] scale '+(ok?'VERIFIED ✓':'REJECTED ✗'));
-  }catch(e){ _scaleVerified=false; console.warn('[auth] verify error', e); }
+    if(!ok){ console.warn('[auth] signature did not verify — will retry'); return; }  // keep retrying rather than fail hard
+    _scaleVerified = true;
+    console.log('[auth] scale VERIFIED ✓');
+  }catch(e){ console.warn('[auth] verify error', e); return; }
   if(_authTimer){ clearTimeout(_authTimer); _authTimer=null; }
   _applyAuthGate();
 }
@@ -10654,42 +10666,20 @@ function setAppMode(mode){
     showToast('The scale assigns primary automatically','warn');
     return;
   }
-  // If trying to switch to primary — check if BLE scale already has a primary connected
-  if(mode === 'primary' && _appMode === 'remote'){
-    // Try to reach the ESP32 WiFi and check primary status
-    fetch('http://192.168.4.1/status', {signal: AbortSignal.timeout(1200)})
-      .then(function(r){ return r.json(); })
-      .then(function(d){
-        if(d.primaryConnected){
-          showToast('A primary device is already connected via BLE — cannot switch','error');
-          updateModeBtns(); // revert button state
-          return;
-        }
-        _applyMode('primary');
-      })
-      .catch(function(){
-        // Can't reach ESP32 WiFi — allow switch (must be on BLE network already)
-        _applyMode('primary');
-      });
-    return;
-  }
   _applyMode(mode);
 }
 
 function _applyMode(mode){
+  // BLE-only now (no legacy WiFi). Roles are assigned by the scale; this just
+  // reflects the mode locally when not driven by a ROLE message.
   _appMode = mode;
   var pill = document.getElementById('pill-remote');
   if(mode === 'remote'){
     if(pill) pill.style.display = 'flex';
     _lockActionsForRemote();
-    _startWifiPoll();
-    _populateWifiDeviceInfo();   // fill Devices panel from WiFi status
-    showToast('Remote mode — live weight only','');
   } else {
     if(pill) pill.style.display = 'none';
     _unlockActionsForPrimary();
-    _stopWifiPoll();
-    _clearWifiDeviceInfo();      // revert Devices panel to BLE-only state
   }
   updateModeBtns();
 }
@@ -10814,9 +10804,10 @@ function _clearWifiDeviceInfo(){
 }
 
 function _lockActionsForRemote(){
-  // In remote mode: Unload, Save, Empty Truck, Scan, Sync are disabled
-  // Tare/Zero stays ENABLED — useful to zero the display in remote view
-  var lockedIds = ['btn-log','btn-unload','tlb-empty-btn','btn-scan','btn-sync'];
+  // In remote mode: Unload, Save, Empty Truck, Sync are disabled.
+  // Scan stays ENABLED — you may still want to find/switch to another scale.
+  // Tare/Zero stays ENABLED — useful to zero the display in remote view.
+  var lockedIds = ['btn-log','btn-unload','tlb-empty-btn','btn-sync'];
   lockedIds.forEach(function(id){
     var el = document.getElementById(id);
     if(!el) return;
@@ -10962,15 +10953,19 @@ function updateModeBtns(){
   var pb = document.getElementById('mode-btn-primary');
   var rb = document.getElementById('mode-btn-remote');
   var sl = document.getElementById('mode-sub-label');
-  if(_appMode === 'remote'){
-    if(pb){ pb.style.background='var(--border)'; pb.style.color='var(--text3)'; }
-    if(rb){ rb.style.background='#2A7AE2'; rb.style.color='#fff'; }
-    if(sl) sl.textContent = T('Remote (WiFi read-only)');
-  } else {
-    if(pb){ pb.style.background='#2D9D5C'; pb.style.color='#fff'; }
-    if(rb){ rb.style.background='var(--border)'; rb.style.color='var(--text3)'; }
-    if(sl) sl.textContent = T('Primary (BLE)');
-  }
+  // Selected = bold gold-orange that clearly shines against the card;
+  // unselected = plain/muted so the difference is obvious at a glance.
+  function on(b){ if(!b)return;
+    b.style.background='linear-gradient(180deg,#F7B733 0%,#EF9A0C 100%)';
+    b.style.color='#3A2600';
+    b.style.boxShadow='0 0 0 2px rgba(239,154,12,0.45), 0 2px 9px rgba(210,135,0,0.45)';
+    b.style.transform='scale(1.04)'; }
+  function off(b){ if(!b)return;
+    b.style.background='#fff'; b.style.color='var(--text3)';
+    b.style.boxShadow='inset 0 0 0 1.5px var(--border)'; b.style.transform='none'; }
+  if(sl) sl.style.display = 'none';   // subtitle removed
+  if(_appMode === 'remote'){ on(rb); off(pb); }
+  else { on(pb); off(rb); }
 }
 
 function goToSignIn(){
@@ -12148,8 +12143,8 @@ if(window._showPasswordReset){
   setTimeout(function(){ showLoginPrompt(); }, 3000);
 }
 
-// Detect remote WiFi mode
-setTimeout(function(){ _detectWifiMode(); }, 2000);
+// Legacy WiFi remote detection removed — the nRF52 scale is BLE-only and
+// remote/primary roles are assigned over BLE by the scale.
 </script>
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDcZniF_xTFBPqqt1l2PYA1cc-MckJXWtk&libraries=geometry"></script>
 </body>
