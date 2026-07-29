@@ -29,7 +29,7 @@
 #include "sha256.h"
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.7.3"
+#define FIRMWARE_VERSION   "1.7.4"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "Virtus Scale"   // advertised name (app scans by NUS UUID + name prefix)
 #define MAX_CONNECTIONS    4                // simultaneous BLE clients
@@ -64,11 +64,11 @@
 #define DEFAULT_SENS_MVV   2.0f      // load-cell sensitivity, mV/V
 #define DEFAULT_CAPACITY   1000.0f   // rated capacity, kg
 #define DEFAULT_CALFACTOR  1.0f
-#define DEFAULT_RESOLUTION 5.0f      // reported weight rounds to this (kg).
-                                     // 5 kg is the SAVED precision; the app
-                                     // coarsens the big display to ~10 kg.
-                                     // change at runtime with RES:<kg>, e.g.
-                                     // RES:0.1 for bench testing
+#define DEFAULT_RESOLUTION 1.0f      // reported weight rounds to this (kg).
+                                     // 1 kg = full precision sent to the app;
+                                     // the app then applies the user's chosen
+                                     // Display Rounding (1/2/5/10) for the big
+                                     // number. Change at runtime with RES:<kg>.
 
 // Stability: reading is "stable" when the spread of the last
 // STABLE_WINDOW readings is under STABLE_BAND (kg)

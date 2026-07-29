@@ -26,6 +26,7 @@
   --accent:#C47D00;--accent-dark:#7A4D00;
   --tabbar-h:68px;--topbar-h:56px;
   --radius:14px;--radius-lg:20px;--radius-xl:28px;
+  --dark-surface:#FFFFFF; --dark-surface2:#FFFAE8; --dark-glass:rgba(255,255,255,0.92);
 }
 html,body{height:100%;overflow:hidden;touch-action:manipulation;}
 body{
@@ -1566,6 +1567,54 @@ body{
 .pw-eye{position:absolute;right:12px;background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;display:flex;align-items:center;}
 .pw-eye:hover{color:var(--text2);}
 
+/* ══ DARK MODE — follows the device/OS setting automatically. The gold tab
+   bar and accent colors are intentionally left untouched; everything else
+   (backgrounds → dark, text → light) inverts. Placed LAST in the stylesheet
+   so its !important rules win every same-specificity tie against earlier
+   unconditional rules (e.g. the "white glassy" button styles). ══ */
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg-top:#1C1A14;--bg-bot:#0F0D09;
+    --bg2:#221F17;--surface:#242019;--surface2:#2A251C;
+    --border:rgba(255,225,150,0.14);--border2:rgba(255,225,150,0.22);
+    --text:#F5EFE0;--text2:rgba(245,239,224,0.68);--text3:rgba(245,239,224,0.42);
+    --green-light:rgba(45,157,92,0.16);--amber-light:rgba(168,94,0,0.22);--red-light:rgba(176,48,32,0.20);
+  }
+  body{ background:linear-gradient(180deg,#1C1A14 0%,#17150F 55%,#100E0A 100%)!important; }
+  #s-login{ background:linear-gradient(180deg,#1C1A14 0%,#221E12 55%,#17140C 100%)!important; }
+  .topbar,.sp-header{ background:linear-gradient(180deg,rgba(36,32,25,0.92) 0%,rgba(30,27,20,0.86) 100%)!important; border-bottom-color:rgba(255,225,150,0.10)!important; }
+  .sub-panel{ background:linear-gradient(180deg,#1C1A14 0%,#17150F 55%,#100E0A 100%)!important; }
+  .card,.info-rows,.tx-sheet,.wheel-sheet,.field-detail-panel,.sleep-box,
+  .add-form,.login-card,.entry-form-panel,.confirm-box,
+  .cal-sheet,.truck-load-bar-wrap{
+    background:linear-gradient(180deg,rgba(36,32,25,0.97) 0%,rgba(30,27,20,0.93) 100%)!important;
+    border-color:rgba(255,225,150,0.12)!important;
+  }
+  .scale-panel{ background:linear-gradient(160deg,#2A251C 0%,#242019 45%,#1E1B15 100%)!important; border-color:rgba(255,225,150,0.10)!important; }
+  .scale-main-weight{ color:#F5EFE0!important; }
+  .scale-mode-lbl,.scale-sub-lbl,.scale-sub-val,.scale-unit-lbl,.stable-pill-inline{ color:var(--text2)!important; }
+  .stable-pill-inline{ background:rgba(255,225,150,0.08)!important; border-color:rgba(255,225,150,0.10)!important; }
+  input,select,textarea,
+  .tx-field-group input,.tx-field-group select,.tx-field-group textarea,
+  .add-form input,.fg input,.fg select{
+    background:var(--surface2)!important; color:var(--text)!important; border-color:var(--border)!important;
+  }
+  /* "white glassy" buttons → dark glassy, text still tracks var(--text) */
+  .btn-scan,.btn-logout,.btn-small-green,.crop-modal-btn,.confirm-btn-cancel,
+  .log-gps-btn,.field-picker-btn,.tlb-empty-btn,.seg-btn.active,
+  .fmap-locate-btn,.fmap-draw-btn,.fmap-filter-btn.active,.fdp-edit-btn,
+  .cal-calc-btn,.btn-sel,.btn-edit-sm,.tx-btn-cancel,.etb-cancel,
+  #dev-ota-btn,#tdp-edit-btn,#profile-auth-btn,
+  .abtn-dark,.abtn-mid,.abtn-light,#lp-skip-btn,
+  .sync-circle,.unsynced-pill{
+    background:linear-gradient(180deg,rgba(40,36,28,0.92),rgba(32,29,22,0.85))!important;
+    border-color:rgba(255,225,150,0.16)!important;
+  }
+  .seg-btn.active{ color:#F5EFE0!important; }
+  .info-row:active{ background:rgba(255,225,150,0.10)!important; }
+  .seg-ctrl{ background:var(--surface2)!important; }
+  /* Tab bar + its gold active capsule stay exactly as-is (not overridden) */
+}
 </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
@@ -2212,17 +2261,14 @@ function _openPasswordResetWhenReady(){
       </div>
       <div style="padding:14px;display:flex;flex-direction:column;gap:12px;">
 
-        <!-- Bluetooth connection -->
+        <!-- Grain Carts (each remembers its own scale) -->
         <div class="card">
           <div class="card-head">
-            <div class="card-title">Bluetooth Scale</div>
-            <div class="status-pill pill-bt" id="settings-bt-pill" style="display:none"><div class="pill-dot"></div><span id="settings-bt-name">--</span></div>
+            <div class="card-title">Grain Carts</div>
+            <button onclick="openAddCartSheet()" class="btn-gold btn-gold-sm">＋ Add Cart</button>
           </div>
-          <button class="btn-scan" id="btn-scan" onclick="scanBluetooth()">
-            <div class="scan-spinner" id="scan-spinner"></div>
-            <span id="scan-label">Scan for Devices</span>
-          </button>
-          <div id="bt-device-list"></div>
+          <div class="status-pill pill-bt" id="settings-bt-pill" style="display:none"><div class="pill-dot"></div><span id="settings-bt-name">--</span></div>
+          <div id="carts-list"></div>
         </div>
 
         <!-- Weight Device Info -->
@@ -2249,8 +2295,9 @@ function _openPasswordResetWhenReady(){
             <div><div class="sr-label" style="color:#A85E00;">Calibration Tool</div></div>
             <div style="font-size:18px;color:rgba(180,130,0,0.4);">›</div>
           </div>
-          <div class="setting-row" style="border-bottom:none;">
-            <div><div class="sr-label">Firmware Version</div><div class="sr-sub" id="dfu-sub">Update via USB (developer) — wireless coming in native app</div></div>
+          <div class="setting-row" onclick="checkFirmwareUpdate()" style="cursor:pointer;border-bottom:none;">
+            <div><div class="sr-label">Check for Firmware Updates</div><div class="sr-sub" id="dfu-sub">Tap to check for the latest version</div></div>
+            <div style="font-size:18px;color:rgba(180,130,0,0.4);">›</div>
           </div>
         </div>
 
@@ -2326,7 +2373,7 @@ function _openPasswordResetWhenReady(){
         <button class="sp-back" onclick="closeMorePanel('settings')">‹ More</button>
         <div class="sp-title">Settings</div>
       </div>
-      <div style="padding:14px;display:flex;flex-direction:column;gap:14px;">
+      <div style="padding:14px;display:flex;flex-direction:column;gap:6px;">
 
         <!-- Units section -->
         <div class="card">
@@ -2343,11 +2390,22 @@ function _openPasswordResetWhenReady(){
           </div>
 
           <!-- Area unit -->
-          <div class="setting-row" style="border-bottom:none;">
+          <div class="setting-row">
             <div><div class="sr-label">Area</div></div>
             <div class="seg-ctrl" id="seg-area">
               <button class="seg-btn active" onclick="setAreaUnit('ha',this)">ha</button>
               <button class="seg-btn" onclick="setAreaUnit('ac',this)">ac</button>
+            </div>
+          </div>
+
+          <!-- Weight display rounding -->
+          <div class="setting-row" style="border-bottom:none;">
+            <div><div class="sr-label"><span id="lbl-round">Display Rounding</span> <span class="info-ico" onclick="showInfoDialog('rounding')">ⓘ</span></div></div>
+            <div class="seg-ctrl" id="seg-round">
+              <button class="seg-btn" onclick="setDisplayRound(1,this)">1</button>
+              <button class="seg-btn" onclick="setDisplayRound(2,this)">2</button>
+              <button class="seg-btn" onclick="setDisplayRound(5,this)">5</button>
+              <button class="seg-btn" onclick="setDisplayRound(10,this)">10</button>
             </div>
           </div>
         </div>
@@ -2373,7 +2431,7 @@ function _openPasswordResetWhenReady(){
           <div class="sp-section-lbl">Auto-Unload Detection</div>
           <div class="setting-row" style="border-bottom:none;flex-direction:column;align-items:flex-start;gap:10px;">
             <div>
-              <div class="sr-label">Drop Trigger <span class="info-ico" onclick="showInfoDialog('droptrigger')">ⓘ</span></div>
+              <div class="sr-label"><span id="lbl-droptrigger">Drop Trigger</span> <span class="info-ico" onclick="showInfoDialog('droptrigger')">ⓘ</span></div>
             </div>
             <div style="display:flex;align-items:center;gap:10px;width:100%;">
               <input type="number" id="au-drop-kg-input"
@@ -2390,7 +2448,7 @@ function _openPasswordResetWhenReady(){
           <div class="sp-section-lbl">Scale Power Saving</div>
           <div class="setting-row" style="border-bottom:none;flex-direction:column;align-items:flex-start;gap:10px;">
             <div>
-              <div class="sr-label">Idle Timeout <span class="info-ico" onclick="showInfoDialog('idletimeout')">ⓘ</span></div>
+              <div class="sr-label"><span id="lbl-idletimeout">Idle Timeout</span> <span class="info-ico" onclick="showInfoDialog('idletimeout')">ⓘ</span></div>
             </div>
             <div class="seg-ctrl" id="seg-powersave" style="width:100%;">
               <button class="seg-btn" onclick="setPowerSaveTimeout(0,this)">Off</button>
@@ -2405,7 +2463,7 @@ function _openPasswordResetWhenReady(){
         <div class="card">
           <div class="sp-section-lbl">Data</div>
           <div class="setting-row" style="border-bottom:none;">
-            <div><div class="sr-label">Clear Local Data <span class="info-ico" onclick="showInfoDialog('cleardata')">ⓘ</span></div></div>
+            <div><div class="sr-label"><span id="lbl-cleardata">Clear Local Data</span> <span class="info-ico" onclick="showInfoDialog('cleardata')">ⓘ</span></div></div>
             <button class="btn-small-red" onclick="clearAllData()">Clear</button>
           </div>
         </div>
@@ -2911,18 +2969,48 @@ function _openPasswordResetWhenReady(){
 <!-- Unrecognized-scale block (shown when a scale fails authentication) -->
 <div class="sleep-overlay" id="auth-block">
   <div class="sleep-box">
-    <div class="sleep-title">Unrecognized Scale</div>
-    <div class="sleep-sub">This scale could not be verified as genuine Virtus hardware. For your data's integrity, the app works only with authentic Virtus scales.</div>
-    <button class="btn-gold btn-gold-lg" style="width:100%;" onclick="disconnectBt()">Disconnect</button>
+    <div class="sleep-title" id="authblock-title">Unrecognized Scale</div>
+    <div class="sleep-sub" id="authblock-sub">This scale could not be verified as genuine Virtus hardware. For your data's integrity, the app works only with authentic Virtus scales.</div>
+    <button class="btn-gold btn-gold-lg" style="width:100%;" onclick="disconnectBt()" id="authblock-btn">Disconnect</button>
+  </div>
+</div>
+
+<!-- Add Grain Cart sheet (name it + scan/connect its scale) -->
+<div class="tx-sheet-overlay" id="add-cart-sheet-overlay" onclick="if(event.target===this)closeAddCartSheet()">
+  <div class="tx-sheet">
+    <div class="tx-sheet-header">
+      <div class="tx-sheet-title" id="add-cart-title">Add Grain Cart</div>
+      <button class="tx-sheet-close" onclick="closeAddCartSheet()">×</button>
+    </div>
+    <div class="tx-sheet-body">
+      <input type="hidden" id="ac-edit-id">
+      <div class="tx-field-group">
+        <label>Cart Name *</label>
+        <input type="text" id="ac-name" autocomplete="off">
+      </div>
+      <div class="tx-field-group">
+        <label>Scale</label>
+        <button class="btn-scan" id="btn-scan" onclick="scanBluetooth()">
+          <div class="scan-spinner" id="scan-spinner"></div>
+          <span id="scan-label">Scan &amp; Connect Scale</span>
+        </button>
+        <div id="bt-device-list"></div>
+        <div id="ac-device-status" style="font-size:13px;color:var(--text3);margin-top:8px;">No scale connected yet — tap Scan.</div>
+      </div>
+    </div>
+    <div class="tx-sheet-footer">
+      <button class="tx-btn-cancel" onclick="closeAddCartSheet()">Cancel</button>
+      <button class="tx-btn-save" onclick="saveCart()">Save Cart</button>
+    </div>
   </div>
 </div>
 
 <!-- Scale sleep-mode overlay (shown when the app puts the scale to sleep) -->
 <div class="sleep-overlay" id="sleep-overlay">
   <div class="sleep-box">
-    <div class="sleep-title">Scale in Sleep Mode</div>
-    <div class="sleep-sub">The scale is conserving battery after a period of inactivity. Tap Wake to resume weighing.</div>
-    <button class="btn-gold btn-gold-lg" style="width:100%;" onclick="_psWake()">Wake</button>
+    <div class="sleep-title" id="sleep-title-txt">Scale in Sleep Mode</div>
+    <div class="sleep-sub" id="sleep-sub-txt">The scale is conserving battery after a period of inactivity. Tap Wake to resume weighing.</div>
+    <button class="btn-gold btn-gold-lg" style="width:100%;" onclick="_psWake()" id="sleep-wake-btn">Wake</button>
   </div>
 </div>
 
@@ -3326,9 +3414,13 @@ let isOnline=navigator.onLine,syncInProgress=false,selectedFarm=null,selectedFie
 
 // ══ INTERNATIONALIZATION (i18n) ══
 const LS_LANG = 'ht_lang';
-// Auto-detect device language on first visit (no saved preference yet)
-let _lang = localStorage.getItem(LS_LANG);
-if (!_lang) {
+const LS_LANG_EXPLICIT = 'ht_lang_explicit';   // set once the user manually picks a language
+// Follow the device/browser language automatically on every load — unless the
+// user has explicitly picked a language in Settings, which always wins.
+let _lang;
+if (localStorage.getItem(LS_LANG_EXPLICIT) === '1') {
+  _lang = localStorage.getItem(LS_LANG) || 'en';
+} else {
   var _deviceLang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
   _lang = _deviceLang.startsWith('es') ? 'es' : 'en';
   localStorage.setItem(LS_LANG, _lang);
@@ -3409,6 +3501,37 @@ const _i18n = {
   'Auto-Unload Detection':'Detección de Descarga Automática',
   'Drop Trigger':'Disparador de Caída','Data':'Datos',
   'Clear Local Data':'Borrar Datos Locales',
+  'Display Rounding':'Redondeo de Pantalla',
+  'Idle Timeout':'Tiempo de Inactividad',
+  'Scale Power Saving':'Ahorro de Batería de la Báscula',
+  '30 min':'30 min','1 hr':'1 h','2 hr':'2 h','Off':'Apagado',
+  'Check for Firmware Updates':'Buscar Actualizaciones de Firmware',
+  'Tap to check for the latest version':'Toca para buscar la última versión',
+  'Update available: v':'Actualización disponible: v',
+  'Grain Carts':'Carritos de Grano','Add Cart':'Agregar Carrito',
+  'Add Grain Cart':'Agregar Carrito de Grano','Edit Grain Cart':'Editar Carrito de Grano',
+  'Cart Name':'Nombre del Carrito','Scale':'Báscula',
+  'Scan & Connect Scale':'Buscar y Conectar Báscula',
+  'No scale connected yet — tap Scan.':'Aún no hay báscula conectada — toca Buscar.',
+  'Searching for a Virtus module…':'Buscando un módulo Virtus…',
+  'No carts yet — tap Add Cart to name one and pair its scale':'Aún no hay carritos — toca Agregar Carrito para nombrar uno y vincular su báscula',
+  'Remove Cart?':'¿Eliminar Carrito?','Selected':'Seleccionado',
+  'Scale in Sleep Mode':'Báscula en Modo de Suspensión',
+  'The scale is conserving battery after a period of inactivity. Tap Wake to resume weighing.':'La báscula está ahorrando batería tras un período de inactividad. Toca Despertar para continuar pesando.',
+  'Wake':'Despertar',
+  'Unrecognized Scale':'Báscula No Reconocida',
+  'This scale could not be verified as genuine Virtus hardware. For your data\'s integrity, the app works only with authentic Virtus scales.':'No se pudo verificar que esta báscula sea un equipo Virtus genuino. Para proteger tus datos, la app solo funciona con básculas Virtus auténticas.',
+  'Disconnect':'Desconectar',
+  'Weight Unit':'Unidad de Peso',
+  'The unit used to display and record weights throughout the app — kilograms, pounds, or bushels. Changing it reformats every reading and log entry.':'La unidad usada para mostrar y registrar pesos en toda la app — kilogramos, libras o bushels. Cambiarla reformatea cada lectura y registro.',
+  'Area Unit':'Unidad de Área',
+  'The unit used for field sizes and yield calculations — hectares or acres. Affects the per-area figures shown on fields and farms.':'La unidad usada para el tamaño de campos y cálculos de rendimiento — hectáreas o acres. Afecta las cifras por área mostradas en campos y fincas.',
+  'The display language for the app interface. Your data is unaffected.':'El idioma de la interfaz de la app. Tus datos no se ven afectados.',
+  'How much weight must come off the cart before an unload is auto-detected. Lower catches smaller dumps but is more sensitive to bounce; higher is steadier. Set to 0 to turn auto-unload off.':'Cuánto peso debe salir del carro antes de que se detecte automáticamente una descarga. Un valor más bajo detecta descargas pequeñas pero es más sensible al rebote; uno más alto es más estable. Ajusta a 0 para desactivar la descarga automática.',
+  'After the screen sits idle this long, the app tells the connected scale to enter a low-power mode to save the module battery. Any tap wakes it again. Set to Off to keep the scale fully active.':'Después de que la pantalla esté inactiva este tiempo, la app le indica a la báscula conectada que entre en modo de bajo consumo para ahorrar batería. Cualquier toque la despierta de nuevo. Ajusta a Apagado para mantener la báscula siempre activa.',
+  'Wipes all harvest logs stored on this device. Records already synced to the cloud are not affected. This cannot be undone.':'Borra todos los registros de cosecha almacenados en este dispositivo. Los registros ya sincronizados con la nube no se ven afectados. Esto no se puede deshacer.',
+  'How closely the big weight number tracks the scale. The scale itself reports full 1 kg precision — this only smooths what\'s shown, so the display doesn\'t flicker on a bouncy load. Saved transaction weights are unaffected.':'Qué tan de cerca sigue el número grande de peso a la báscula. La báscula reporta precisión completa de 1 kg — esto solo suaviza lo que se muestra, para que la pantalla no parpadee con una carga inestable. Los pesos de transacciones guardadas no se ven afectados.',
+  'Close':'Cerrar',
   'Wipe logs from this device':'Borrar registros de este dispositivo',
   'Language':'Idioma','App language':'Idioma de la aplicación',
 
@@ -3709,6 +3832,7 @@ function T(en) {
 function setLanguage(lang) {
   _lang = lang;
   localStorage.setItem(LS_LANG, lang);
+  localStorage.setItem(LS_LANG_EXPLICIT, '1');   // manual choice now overrides device language
   document.documentElement.lang = lang;
   applyLanguage();
   // Update language toggle buttons
@@ -3966,16 +4090,27 @@ function applyLanguage() {
   document.querySelectorAll('#sp-settings .sp-section-lbl').forEach(function(lbl) {
     var txt = lbl.textContent.trim();
     if (txt === 'Units' || txt === 'Unidades') lbl.textContent = T('Units');
+    if (txt === 'Language' || txt === 'Idioma') lbl.textContent = T('Language');
     if (txt === 'Auto-Unload Detection' || txt === 'Detección de Descarga Automática') lbl.textContent = T('Auto-Unload Detection');
+    if (txt === 'Scale Power Saving' || txt === 'Ahorro de Batería de la Báscula') lbl.textContent = T('Scale Power Saving');
     if (txt === 'Data' || txt === 'Datos') lbl.textContent = T('Data');
   });
   document.querySelectorAll('#sp-settings .sr-label').forEach(function(lbl) {
     var txt = lbl.textContent.trim();
     var map = {'Weight':'Weight','Peso':'Weight','Temperature':'Temperature','Temperatura':'Temperature',
-      'Area':'Area','Área':'Area','Drop Trigger':'Drop Trigger','Disparador de Caída':'Drop Trigger',
-      'Clear Local Data':'Clear Local Data','Borrar Datos Locales':'Clear Local Data',
+      'Area':'Area','Área':'Area',
       'Language':'Language','Idioma':'Language'};
     var key = map[txt]; if (key) lbl.textContent = T(key);
+  });
+  // Icon-having labels: translate via their dedicated id span so the ⓘ icon is untouched
+  ['lbl-round','lbl-droptrigger','lbl-idletimeout','lbl-cleardata'].forEach(function(id){
+    var map = {'lbl-round':'Display Rounding','lbl-droptrigger':'Drop Trigger','lbl-idletimeout':'Idle Timeout','lbl-cleardata':'Clear Local Data'};
+    var el = document.getElementById(id); if (el) el.textContent = T(map[id]);
+  });
+  document.querySelectorAll('#seg-powersave .seg-btn').forEach(function(b){
+    var txt = b.textContent.trim();
+    var map = {'Off':'Off','Apagado':'Off','30 min':'30 min','1 hr':'1 hr','1 h':'1 hr','2 hr':'2 hr','2 h':'2 hr'};
+    var key = map[txt]; if (key) b.textContent = T(key);
   });
   document.querySelectorAll('#sp-settings .sr-sub').forEach(function(sub) {
     var txt = sub.textContent.trim();
@@ -3990,8 +4125,31 @@ function applyLanguage() {
   // ── Devices sub-panel ──
   document.querySelectorAll('#sp-devices .card-title').forEach(function(lbl) {
     var txt = lbl.textContent.trim();
-    if (txt === 'Bluetooth Scale' || txt === 'Báscula Bluetooth') lbl.textContent = T('Bluetooth Scale');
+    if (txt === 'Grain Carts' || txt === 'Carritos de Grano') lbl.textContent = T('Grain Carts');
   });
+  var addCartBtn = document.querySelector('#sp-devices .card-head .btn-gold-sm');
+  if (addCartBtn && (addCartBtn.textContent.trim()==='＋ Add Cart'||addCartBtn.textContent.trim()==='＋ Agregar Carrito'))
+    addCartBtn.textContent = '＋ '+T('Add Cart');
+  var acNameLbl = document.querySelector('label[for="ac-name"]') || (document.getElementById('ac-name')&&document.getElementById('ac-name').closest('.tx-field-group').querySelector('label'));
+  if (acNameLbl && (acNameLbl.textContent.trim()==='Cart Name *'||acNameLbl.textContent.trim()==='Nombre del Carrito *'))
+    acNameLbl.textContent = T('Cart Name')+' *';
+  var acScaleLbl = document.getElementById('btn-scan') && document.getElementById('btn-scan').closest('.tx-field-group').querySelector('label');
+  if (acScaleLbl && (acScaleLbl.textContent.trim()==='Scale'||acScaleLbl.textContent.trim()==='Báscula'))
+    acScaleLbl.textContent = T('Scale');
+  var fwCheckRow = document.getElementById('dfu-sub') && document.getElementById('dfu-sub').closest('.setting-row').querySelector('.sr-label');
+  if (fwCheckRow && (fwCheckRow.textContent.trim()==='Check for Firmware Updates'||fwCheckRow.textContent.trim()==='Buscar Actualizaciones de Firmware'))
+    fwCheckRow.textContent = T('Check for Firmware Updates');
+  var dfuSub = document.getElementById('dfu-sub');
+  if (dfuSub && (dfuSub.textContent.trim()==='Tap to check for the latest version'||dfuSub.textContent.trim()==='Toca para buscar la última versión'))
+    dfuSub.textContent = T('Tap to check for the latest version');
+
+  // ── Sleep overlay / Unrecognized-scale block ──
+  var stt = document.getElementById('sleep-title-txt'); if (stt) stt.textContent = T('Scale in Sleep Mode');
+  var sst = document.getElementById('sleep-sub-txt'); if (sst) sst.textContent = T('The scale is conserving battery after a period of inactivity. Tap Wake to resume weighing.');
+  var swb = document.getElementById('sleep-wake-btn'); if (swb) swb.textContent = T('Wake');
+  var abt = document.getElementById('authblock-title'); if (abt) abt.textContent = T('Unrecognized Scale');
+  var abs = document.getElementById('authblock-sub'); if (abs) abs.textContent = T('This scale could not be verified as genuine Virtus hardware. For your data\'s integrity, the app works only with authentic Virtus scales.');
+  var abb = document.getElementById('authblock-btn'); if (abb) abb.textContent = T('Disconnect');
   var scanLbl = document.getElementById('scan-label');
   if (scanLbl && (scanLbl.textContent === 'Scan for Devices' || scanLbl.textContent === 'Buscar Dispositivos'))
     scanLbl.textContent = T('Scan for Devices');
@@ -4501,6 +4659,7 @@ function openMorePanel(name){
     if(p.id !== 'sp-'+name) p.classList.remove('open');
   });
   document.getElementById('sp-'+name).classList.add('open');
+  if(name==='devices' && typeof renderCarts==='function') renderCarts();
   if(name==='cloud') updateCloudPanel();
   if(name==='settings'){ loadUnitSettings(); loadRoleSetting(); loadAutoDetectSettings(); }
   if(name==='fieldmap') openFieldMap();
@@ -5154,15 +5313,68 @@ function handleOtaResponse(msg){
   }
 }
 
-function installFirmwareUpdate(){
-  sendBleCommand('OTA_INSTALL');
-  showToast('Starting firmware update…','');
-}
+// ══ FIRMWARE UPDATE ══
+// Checks the published manifest for a newer firmware than the connected scale
+// reports, and drives the update. Real flashing happens through a native DFU
+// bridge (Capacitor plugin in the iOS app); on the web, browsers can't flash
+// over BLE (the DFU service is blocklisted), so we show the file + guidance.
+var _FW_MANIFEST_URL = 'https://raw.githubusercontent.com/jasonfriesen5/Virtus-Farmware/main/version.json';
+var _FW_ZIP_BASE     = 'https://github.com/jasonfriesen5/Virtus-Farmware/raw/main/';
+var _fwLatest = null;
 
-function checkFirmwareUpdate(){
-  sendBleCommand('OTA_CHECK');
-  showToast('Checking for update…','');
+function _cmpVer(a, b){   // >0 if a newer than b
+  var pa=(a||'0').split('.').map(Number), pb=(b||'0').split('.').map(Number);
+  for(var i=0;i<3;i++){ var d=(pa[i]||0)-(pb[i]||0); if(d) return d; }
+  return 0;
 }
+function _fwCurrentVersion(){
+  var t=(document.getElementById('dev-firmware')||{}).textContent||'';
+  var m=t.match(/(\d+\.\d+\.\d+)/); return m?m[1]:'';
+}
+async function checkFirmwareUpdate(silent){
+  var sub=document.getElementById('dev-update-sub'), btn=document.getElementById('dev-ota-btn');
+  var cur=_fwCurrentVersion();
+  if(!cur){ if(!silent && sub){ sub.style.display=''; sub.style.color='var(--text3)'; sub.textContent='Connect a scale first'; } return; }
+  if(sub && !silent){ sub.style.display=''; sub.style.color='var(--text3)'; sub.textContent='Checking…'; }
+  try{
+    var r=await fetch(_FW_MANIFEST_URL+'?t='+Date.now(), {cache:'no-store'});
+    _fwLatest=await r.json();
+    if(_cmpVer(_fwLatest.version, cur) > 0){
+      if(sub){ sub.style.display=''; sub.style.color='#2D9D5C'; sub.textContent='Update available: v'+_fwLatest.version; }
+      if(btn){ btn.style.display=''; btn.textContent='Update'; }
+    } else {
+      if(sub){ sub.style.display=''; sub.style.color='var(--text3)'; sub.textContent='✓ Up to date (v'+cur+')'; }
+      if(btn) btn.style.display='none';
+    }
+  }catch(e){
+    if(sub && !silent){ sub.style.display=''; sub.style.color='#B03020'; sub.textContent='Could not check for updates'; }
+  }
+}
+function startFirmwareUpdate(){
+  var zipUrl = _FW_ZIP_BASE + (_fwLatest && _fwLatest.dfu ? _fwLatest.dfu : '');
+  var ver    = _fwLatest ? _fwLatest.version : '';
+  // Native DFU bridge (present in the iOS/Capacitor build)
+  if(window.VirtusDFU && typeof window.VirtusDFU.start === 'function'){
+    showToast('Updating firmware to v'+ver+'…','');
+    window.VirtusDFU.start({ deviceId: btDevice && btDevice.id, zipUrl: zipUrl, version: ver })
+      .then(function(){ showToast('Firmware updated to v'+ver+' — scale restarting','success'); })
+      .catch(function(err){ showToast('Update failed: '+(err&&err.message||err),'error'); });
+    return;
+  }
+  // Web fallback — can't flash over BLE in a browser
+  showConfirm({
+    icon:'⚙️',
+    title:'Firmware v'+ver+' available',
+    msg:'In-app updating runs in the Virtus iOS app. On the web, download the update file and flash it with the nRF Device Firmware Update app (put the scale in update mode first).',
+    okLabel:'Download update file',
+    cancelLabel:'Close',
+    okColor:'#D4930A'
+  }).then(function(ok){
+    if(ok){ window.open(zipUrl, '_blank'); }
+  });
+}
+// Legacy alias kept for the button's onclick
+function installFirmwareUpdate(){ startFirmwareUpdate(); }
 
 // ── Send a text command to ESP32 via RX characteristic ──
 // Commands: "TARE\n", "ZERO\n", "RESET\n"
@@ -5494,6 +5706,7 @@ async function connectRealDevice(device){
       // Request device info and status immediately
       setTimeout(function(){ sendBleCommand('INFO'); }, 500);
       setTimeout(function(){ sendBleCommand('STATUS'); }, 1000);
+      setTimeout(function(){ sendBleCommand('RES:1'); }, 1200);  // report full 1 kg precision; app does display rounding
       setTimeout(function(){ if(typeof _startScaleAuth==='function') _startScaleAuth(); }, 800);  // verify genuine scale
       _psAsleep=false; if(typeof _psArm==='function') _psArm();  // start idle-timeout watch
     } catch(uartErr){
@@ -5522,8 +5735,12 @@ async function connectRealDevice(device){
 
     if(connected){
       updateBtPills(true, deviceName);
-      document.querySelectorAll('.sub-panel.open').forEach(function(p){ p.classList.remove('open'); });
-      showTab('weigh');
+      // During cart pairing, stay in the Add-Cart sheet so the user can name
+      // and save — don't close the panel or jump to the Weigh tab.
+      if(!_cartPairingInProgress){
+        document.querySelectorAll('.sub-panel.open').forEach(function(p){ p.classList.remove('open'); });
+        showTab('weigh');
+      }
       document.getElementById('btn-log').disabled    = false;
       document.getElementById('btn-unload').disabled = false;
     }
@@ -5550,6 +5767,7 @@ function disconnectBt(){
   _psAsleep=false; if(_psTimer){ clearTimeout(_psTimer); _psTimer=null; } _psHideSleepOverlay();  // stop idle-timeout watch
   _bleRole=null;  // forget scale-assigned role; re-applied on next connect
   _scaleVerified=false; _authNonceHex=null; if(_authTimer){ clearTimeout(_authTimer); _authTimer=null; } _applyAuthGate();  // reset auth
+  _connectedSerial=null;
   updateBtPills(false);
   resetScaleDisplay();
   document.getElementById('btn-log').disabled    = true;
@@ -5571,6 +5789,9 @@ function updateBtPills(connected,name){
     if(connected){ btEl.textContent = name||T('Connected'); btEl.style.color = '#1A6B3C'; }
     else { btEl.textContent = T('No Devices'); btEl.style.color = 'var(--text)'; }
   }
+  // Keep the grain-cart list + add-cart status in sync with the connection
+  if(typeof _updateCartDeviceStatus==='function') _updateCartDeviceStatus();
+  if(typeof renderCarts==='function') renderCarts();
 }
 
 function enableManualInput(){
@@ -5623,10 +5844,10 @@ function setRawWeight(w){
 // Display-only coarsening. The firmware streams 5 kg steps and that finer
 // value is what gets SAVED — this just makes the big number easy to read.
 // Steps are chosen to be roughly equivalent across units (~10 kg).
+var _displayRoundStep = parseInt(localStorage.getItem('vh_display_round')||'1',10) || 1;
 function _roundForDisplay(val, unit){
-  if(unit==='lbs'||unit==='lb') return Math.round(val/20)*20;  // ~9 kg
-  if(unit==='bu')               return Math.round(val);        // 1 bu (~27 kg)
-  return Math.round(val/10)*10;                                // kg
+  var s = _displayRoundStep > 0 ? _displayRoundStep : 1;   // 1 / 2 / 5 / 10 (user setting)
+  return Math.round(val/s)*s;
 }
 function _fmtDisplay(val, unit){
   var r = _roundForDisplay(val, unit);
@@ -7150,6 +7371,18 @@ function setAreaUnit(unit, btn){
   showToast(T('Area unit: ')+(unit==='ha'?T('Hectares'):T('Acres')),'success');
 }
 
+// How much the big weight number is rounded to for display (1/2/5/10 kg-or-
+// equivalent). The scale itself now reports full 1 kg precision; this is a
+// pure display preference layered on top in _roundForDisplay().
+function setDisplayRound(step, btn){
+  _displayRoundStep = step;
+  localStorage.setItem('vh_display_round', String(step));
+  document.querySelectorAll('#seg-round .seg-btn').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  if(rawWeight!==null) _paintScaleDisplay();
+  showToast(T('Display rounding: ')+step,'success');
+}
+
 // ── Weight conversion constants ──
 var KG_TO_LB = 2.20462;
 var KG_TO_BU_CORN    = 0.0393683; // 1 bu corn = 25.4012 kg
@@ -7270,6 +7503,9 @@ function loadUnitSettings(){
   abtns.forEach(function(b){ b.classList.toggle('active', b.textContent===u.area); });
   // Apply weight unit to display
   applyWeightUnit(u.weight);
+  // Display rounding
+  var rbtns = document.querySelectorAll('#seg-round .seg-btn');
+  rbtns.forEach(function(b){ b.classList.toggle('active', parseInt(b.textContent,10)===_displayRoundStep); });
 }
 
 
@@ -8526,6 +8762,167 @@ function updateDeviceInfo(info){
     if(el) el.textContent = fields[id];
   });
   syncCalDeviceInfo();
+  // Capture the module's hardware serial — the stable, portable identity we
+  // bind grain carts to (survives browser/device/reinstall changes).
+  _connectedSerial = (info.serial && info.serial !== 'N/A') ? info.serial : null;
+  _updateCartDeviceStatus();
+  _checkCartSerialMatch();
+  // Now that we know the scale's firmware version, quietly check for a newer one
+  if(info.firmware && info.firmware !== 'N/A'){ setTimeout(function(){ checkFirmwareUpdate(true); }, 400); }
+}
+
+var _connectedSerial = null;
+// If the connected module's serial doesn't match the selected cart's serial,
+// warn (the wrong scale is nearby / paired). Doesn't block.
+function _checkCartSerialMatch(){
+  if(!_activeCartId || !_connectedSerial) return;
+  var c = getCarts().find(function(x){ return x.id===_activeCartId; });
+  if(c && c.serial && c.serial !== _connectedSerial){
+    showToast('Heads up: connected module ('+_connectedSerial+') is not '+c.name+'’s scale','warn');
+  }
+}
+
+// ══ GRAIN CARTS ══
+// Each grain cart is a named cart bound to a specific BLE scale. Selecting a
+// cart reconnects to that cart's saved device — so one iPad can move between
+// carts and connect to the right scale each time. Separate from Trucks.
+var LS_CARTS = 'vh_grain_carts';
+var _activeCartId = localStorage.getItem('vh_active_cart') || null;
+var _cartPairingInProgress = false;   // true while the Add/Edit-Cart sheet is open
+function getCarts(){ try{ return JSON.parse(localStorage.getItem(LS_CARTS)||'[]'); }catch(e){ return []; } }
+function saveCarts(c){ localStorage.setItem(LS_CARTS, JSON.stringify(c)); }
+
+function openAddCartSheet(){
+  document.getElementById('ac-edit-id').value = '';
+  document.getElementById('add-cart-title').textContent = T('Add Grain Cart');
+  document.getElementById('ac-name').value = '';
+  _cartPairingInProgress = true;
+  _updateCartDeviceStatus();
+  document.getElementById('add-cart-sheet-overlay').classList.add('open');
+  // No scale connected yet → immediately search for a Virtus module (the
+  // picker runs inside this button's user-gesture, so it's allowed).
+  if(!btDevice){ scanBluetooth(); }
+  else { setTimeout(function(){ document.getElementById('ac-name').focus(); }, 150); }
+}
+function openEditCartSheet(id){
+  var c = getCarts().find(function(x){ return x.id===id; }); if(!c) return;
+  document.getElementById('ac-edit-id').value = id;
+  document.getElementById('add-cart-title').textContent = T('Edit Grain Cart');
+  document.getElementById('ac-name').value = c.name;
+  _cartPairingInProgress = true;
+  _updateCartDeviceStatus();
+  document.getElementById('add-cart-sheet-overlay').classList.add('open');
+}
+function closeAddCartSheet(){
+  _cartPairingInProgress = false;
+  document.getElementById('add-cart-sheet-overlay').classList.remove('open');
+}
+
+function _updateCartDeviceStatus(){
+  var el = document.getElementById('ac-device-status'); if(!el) return;
+  if(btDevice){
+    el.textContent = '✓ Connected: '+(btDevice.name||'scale')+(_connectedSerial?' · serial '+_connectedSerial:'');
+    el.style.color='#1A6B3C'; return;
+  }
+  // Editing an existing cart with no live connection — show what it's paired to
+  var editId = (document.getElementById('ac-edit-id')||{}).value;
+  var c = editId ? getCarts().find(function(x){ return x.id===editId; }) : null;
+  if(c && c.serial){
+    el.textContent = T('Paired to')+' '+(c.deviceName||'scale')+' · serial '+c.serial+' — '+T('tap Scan to change');
+    el.style.color='var(--text2)'; return;
+  }
+  el.textContent = T('Searching for a Virtus module…'); el.style.color='var(--text3)';
+}
+
+function saveCart(){
+  var name = (document.getElementById('ac-name').value||'').trim();
+  if(!name){ showToast('Enter a cart name','error'); return; }
+  if(!btDevice || !btDevice.id){ showToast('Connect a scale first (tap Scan)','warn'); return; }
+  var carts = getCarts();
+  var editId = document.getElementById('ac-edit-id').value;
+  var serial = _connectedSerial || null;
+  if(editId){
+    var c = carts.find(function(x){ return x.id===editId; });
+    if(c){ c.name=name; c.deviceId=btDevice.id; c.deviceName=btDevice.name||name; if(serial) c.serial=serial; }
+  } else {
+    var nc = { id: uid(), name: name, serial: serial, deviceId: btDevice.id, deviceName: btDevice.name||name };
+    carts.push(nc);
+    _activeCartId = nc.id; localStorage.setItem('vh_active_cart', nc.id);
+  }
+  saveCarts(carts);
+  var savedCart = editId ? carts.find(function(x){ return x.id===editId; }) : carts[carts.length-1];
+  if(savedCart && typeof syncCart==='function') syncCart(savedCart);   // push to cloud
+  closeAddCartSheet();
+  renderCarts();
+  showToast(name+' saved','success');
+}
+
+function deleteCartById(id){
+  var c = getCarts().find(function(x){ return x.id===id; });
+  showConfirm({ title:T('Remove Cart?'), msg:T('Remove')+' "'+(c?c.name:'')+'"?', okLabel:T('Remove'), okColor:'#B03020' }).then(function(ok){
+    if(!ok) return;
+    if(typeof deleteSyncCart==='function') deleteSyncCart(id);   // remove from cloud
+    saveCarts(getCarts().filter(function(x){ return x.id!==id; }));
+    if(_activeCartId===id){ _activeCartId=null; localStorage.removeItem('vh_active_cart'); }
+    renderCarts();
+  });
+}
+
+async function selectCart(id){
+  var c = getCarts().find(function(x){ return x.id===id; }); if(!c) return;
+  _activeCartId = id; localStorage.setItem('vh_active_cart', id);
+  renderCarts();
+  if(btDevice && btDevice.id===c.deviceId){ showToast(c.name+' — already connected','success'); return; }
+  if(btDevice){ try{ disconnectBt(); }catch(e){} }
+  await _reconnectCartDevice(c);
+}
+
+async function _reconnectCartDevice(c){
+  if(!c || !c.deviceId) return;
+  if(!navigator.bluetooth || !navigator.bluetooth.getDevices){
+    showToast('Open '+c.name+' and Scan to connect its scale','warn'); return;
+  }
+  showToast('Connecting to '+c.name+'…','');
+  try{
+    var devs = await navigator.bluetooth.getDevices();
+    var dev = devs.find(function(d){ return d.id===c.deviceId; });
+    if(dev){ await connectRealDevice(dev); renderCarts(); }
+    else { showToast('Scale not found — Edit '+c.name+' and re-scan','warn'); }
+  }catch(e){ showToast('Reconnect failed: '+e.message,'error'); }
+}
+
+function renderCarts(){
+  var list = document.getElementById('carts-list'); if(!list) return;
+  var carts = getCarts();
+  list.innerHTML='';
+  if(!carts.length){
+    list.innerHTML = '<div style="text-align:center;padding:16px;font-size:13px;color:var(--text3);">'+T('No carts yet — tap Add Cart to name one and pair its scale')+'</div>';
+    return;
+  }
+  carts.forEach(function(c){
+    var active = _activeCartId===c.id;
+    var isConn = active && btDevice && btDevice.id===c.deviceId;
+    var row=document.createElement('div');
+    row.className='info-row'; row.style.cursor='pointer';
+    if(active) row.style.background='rgba(245,200,66,0.14)';
+    row.innerHTML =
+      '<div class="info-row-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A1F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="15" height="10" rx="1"/><path d="M16 9h4l3 3v4h-7z"/><circle cx="5.5" cy="18.5" r="1.6"/><circle cx="18.5" cy="18.5" r="1.6"/></svg></div>'+
+      '<div class="info-row-main"><div class="info-row-title" style="color:var(--text);">'+esc(c.name)+'</div>'+
+      '<div class="info-row-sub">'+(isConn?'● Connected':(active?T('Selected')+' · '+esc(c.deviceName||'scale'):esc(c.deviceName||'scale')))+'</div></div>'+
+      '<div class="info-row-right" style="display:flex;align-items:center;gap:6px;"></div>';
+    row.addEventListener('click', function(e){
+      if(e.target.classList.contains('btn-del-sm')||e.target.classList.contains('btn-edit-sm')) return;
+      selectCart(c.id);
+    });
+    var right=row.querySelector('.info-row-right');
+    var edit=document.createElement('button'); edit.className='btn-edit-sm'; edit.textContent=T('Edit');
+    edit.style.cssText='border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;';
+    edit.addEventListener('click', function(e){ e.stopPropagation(); openEditCartSheet(c.id); });
+    var del=document.createElement('button'); del.className='btn-del-sm'; del.textContent='x';
+    del.addEventListener('click', function(e){ e.stopPropagation(); deleteCartById(c.id); });
+    right.appendChild(edit); right.appendChild(del);
+    list.appendChild(row);
+  });
 }
 
 function clearDeviceInfo(){
@@ -8739,11 +9136,13 @@ var _INFO_TEXTS = {
   idletimeout: {title:'Scale Power Saving',
     msg:'After the screen sits idle this long, the app tells the connected scale to enter a low-power mode to save the module battery. Any tap wakes it again. Set to Off to keep the scale fully active.'},
   cleardata: {title:'Clear Local Data',
-    msg:'Wipes all harvest logs stored on this device. Records already synced to the cloud are not affected. This cannot be undone.'}
+    msg:'Wipes all harvest logs stored on this device. Records already synced to the cloud are not affected. This cannot be undone.'},
+  rounding: {title:'Display Rounding',
+    msg:'How closely the big weight number tracks the scale. The scale itself reports full 1 kg precision — this only smooths what\'s shown, so the display doesn\'t flicker on a bouncy load. Saved transaction weights are unaffected.'}
 };
 function showInfoDialog(key){
   var t = _INFO_TEXTS[key]; if(!t) return;
-  showConfirm({icon:'ℹ️', title:t.title, msg:t.msg, okLabel:'Close', okColor:'#D4930A', singleButton:true});
+  showConfirm({icon:'ℹ️', title:T(t.title), msg:T(t.msg), okLabel:T('Close'), okColor:'#D4930A', singleButton:true});
 }
 
 // ── Edit sensitivity / capacity from Device Info (firmware-backed) ──
@@ -9578,7 +9977,7 @@ async function pullConfig(){
     showToast('Pulling config…','');
 
     // Fetch all tables in parallel
-    var [farmsRes, fieldsRes, trucksRes, destsRes, opsRes, cropsRes, boundRes] = await Promise.all([
+    var [farmsRes, fieldsRes, trucksRes, destsRes, opsRes, cropsRes, boundRes, cartsRes] = await Promise.all([
       sb.from('ht_farms').select('*').eq('user_id', currentWorker.id),
       sb.from('ht_fields').select('*').eq('user_id', currentWorker.id),
       sb.from('ht_trucks').select('*').eq('user_id', currentWorker.id),
@@ -9586,7 +9985,22 @@ async function pullConfig(){
       sb.from('ht_operators').select('*').eq('user_id', currentWorker.id),
       sb.from('ht_crops').select('*').eq('user_id', currentWorker.id),
       sb.from('ht_boundaries').select('*').eq('user_id', currentWorker.id),
+      sb.from('ht_carts').select('*').eq('user_id', currentWorker.id).then(function(r){return r;}, function(){return {data:null};}),
     ]);
+
+    // Grain carts — merge cloud identity (name + serial) with this device's
+    // local BLE binding (deviceId/deviceName stay local & per-browser).
+    if(cartsRes && cartsRes.data){
+      var localCarts = getCarts();
+      var mergedCarts = cartsRes.data.map(function(r){
+        var l = localCarts.find(function(x){ return x.id===r.id; }) || {};
+        return { id:r.id, name:r.name, serial:r.serial||null,
+                 deviceId:l.deviceId||null, deviceName:l.deviceName||(r.serial?('serial '+r.serial):null) };
+      });
+      localCarts.forEach(function(l){ if(!mergedCarts.find(function(m){ return m.id===l.id; })) mergedCarts.push(l); });
+      saveCarts(mergedCarts);
+      renderCarts();
+    }
 
     // Farms
     if(farmsRes.data && farmsRes.data.length){
@@ -9718,6 +10132,9 @@ async function pushConfig(){
     var crops  = getCrops().map(function(c){ return {id:uid+'_'+c, user_id:uid, name:c}; });
     var boundaries = getBoundaries();
     var boundRows  = Object.keys(boundaries).map(function(fid){ return {field_id:fid, user_id:uid, points:boundaries[fid]}; });
+    // Grain carts — sync only the portable identity (name + module serial);
+    // the local BLE deviceId is per-browser and stays out of the cloud.
+    var carts  = getCarts().map(function(c){ return {id:c.id, user_id:uid, name:c.name, serial:c.serial||null}; });
 
     var all = [];
     if(farms.length)     all.push(sb.from('ht_farms').upsert(farms));
@@ -9727,6 +10144,7 @@ async function pushConfig(){
     if(ops.length)       all.push(sb.from('ht_operators').upsert(ops));
     if(crops.length)     all.push(sb.from('ht_crops').upsert(crops));
     if(boundRows.length) all.push(sb.from('ht_boundaries').upsert(boundRows));
+    if(carts.length)     all.push(sb.from('ht_carts').upsert(carts).then(function(r){return r;}, function(){return null;}));
 
     await Promise.all(all);
     return true;
@@ -9749,6 +10167,11 @@ function syncTruck(truck){
   if(!currentWorker||!currentWorker.id) return;
   _pushConfig('ht_trucks',{id:truck.id, user_id:currentWorker.id, name:truck.name, plate:truck.plate||null, driver:truck.driver||null, capacity:truck.capacity||null, make_model:truck.makeModel||null, notes:truck.notes||null});
 }
+function syncCart(cart){
+  if(!currentWorker||!currentWorker.id) return;
+  _pushConfig('ht_carts',{id:cart.id, user_id:currentWorker.id, name:cart.name, serial:cart.serial||null});
+}
+function deleteSyncCart(id){ if(currentWorker&&currentWorker.id) _deleteConfig('ht_carts',id); }
 function syncDestination(dest){
   if(!currentWorker||!currentWorker.id) return;
   _pushConfig('ht_destinations',{id:dest.id, user_id:currentWorker.id, name:dest.name});
