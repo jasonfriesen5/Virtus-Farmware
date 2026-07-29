@@ -1567,54 +1567,53 @@ body{
 .pw-eye{position:absolute;right:12px;background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;display:flex;align-items:center;}
 .pw-eye:hover{color:var(--text2);}
 
-/* ══ DARK MODE — follows the device/OS setting automatically. The gold tab
-   bar and accent colors are intentionally left untouched; everything else
-   (backgrounds → dark, text → light) inverts. Placed LAST in the stylesheet
-   so its !important rules win every same-specificity tie against earlier
-   unconditional rules (e.g. the "white glassy" button styles). ══ */
-@media (prefers-color-scheme: dark){
-  :root{
-    --bg-top:#1C1A14;--bg-bot:#0F0D09;
-    --bg2:#221F17;--surface:#242019;--surface2:#2A251C;
-    --border:rgba(255,225,150,0.14);--border2:rgba(255,225,150,0.22);
-    --text:#F5EFE0;--text2:rgba(245,239,224,0.68);--text3:rgba(245,239,224,0.42);
-    --green-light:rgba(45,157,92,0.16);--amber-light:rgba(168,94,0,0.22);--red-light:rgba(176,48,32,0.20);
-  }
-  body{ background:linear-gradient(180deg,#1C1A14 0%,#17150F 55%,#100E0A 100%)!important; }
-  #s-login{ background:linear-gradient(180deg,#1C1A14 0%,#221E12 55%,#17140C 100%)!important; }
-  .topbar,.sp-header{ background:linear-gradient(180deg,rgba(36,32,25,0.92) 0%,rgba(30,27,20,0.86) 100%)!important; border-bottom-color:rgba(255,225,150,0.10)!important; }
-  .sub-panel{ background:linear-gradient(180deg,#1C1A14 0%,#17150F 55%,#100E0A 100%)!important; }
-  .card,.info-rows,.tx-sheet,.wheel-sheet,.field-detail-panel,.sleep-box,
-  .add-form,.login-card,.entry-form-panel,.confirm-box,
-  .cal-sheet,.truck-load-bar-wrap{
-    background:linear-gradient(180deg,rgba(36,32,25,0.97) 0%,rgba(30,27,20,0.93) 100%)!important;
-    border-color:rgba(255,225,150,0.12)!important;
-  }
-  .scale-panel{ background:linear-gradient(160deg,#2A251C 0%,#242019 45%,#1E1B15 100%)!important; border-color:rgba(255,225,150,0.10)!important; }
-  .scale-main-weight{ color:#F5EFE0!important; }
-  .scale-mode-lbl,.scale-sub-lbl,.scale-sub-val,.scale-unit-lbl,.stable-pill-inline{ color:var(--text2)!important; }
-  .stable-pill-inline{ background:rgba(255,225,150,0.08)!important; border-color:rgba(255,225,150,0.10)!important; }
-  input,select,textarea,
-  .tx-field-group input,.tx-field-group select,.tx-field-group textarea,
-  .add-form input,.fg input,.fg select{
-    background:var(--surface2)!important; color:var(--text)!important; border-color:var(--border)!important;
-  }
-  /* "white glassy" buttons → dark glassy, text still tracks var(--text) */
-  .btn-scan,.btn-logout,.btn-small-green,.crop-modal-btn,.confirm-btn-cancel,
-  .log-gps-btn,.field-picker-btn,.tlb-empty-btn,.seg-btn.active,
-  .fmap-locate-btn,.fmap-draw-btn,.fmap-filter-btn.active,.fdp-edit-btn,
-  .cal-calc-btn,.btn-sel,.btn-edit-sm,.tx-btn-cancel,.etb-cancel,
-  #dev-ota-btn,#tdp-edit-btn,#profile-auth-btn,
-  .abtn-dark,.abtn-mid,.abtn-light,#lp-skip-btn,
-  .sync-circle,.unsynced-pill{
-    background:linear-gradient(180deg,rgba(40,36,28,0.92),rgba(32,29,22,0.85))!important;
-    border-color:rgba(255,225,150,0.16)!important;
-  }
-  .seg-btn.active{ color:#F5EFE0!important; }
-  .info-row:active{ background:rgba(255,225,150,0.10)!important; }
-  .seg-ctrl{ background:var(--surface2)!important; }
-  /* Tab bar + its gold active capsule stay exactly as-is (not overridden) */
+/* ══ DARK MODE — resolved by JS (auto-follows the OS by default, or forced
+   by the user's Settings choice) and applied via [data-theme] on <html>.
+   The gold tab bar and accent colors are intentionally left untouched;
+   everything else (backgrounds → dark, text → light) inverts. Placed LAST
+   in the stylesheet so its !important rules win every same-specificity tie
+   against earlier unconditional rules (e.g. the "white glassy" buttons). ══ */
+:root[data-theme="dark"]{
+  --bg-top:#1C1A14;--bg-bot:#0F0D09;
+  --bg2:#221F17;--surface:#242019;--surface2:#2A251C;
+  --border:rgba(255,225,150,0.14);--border2:rgba(255,225,150,0.22);
+  --text:#F5EFE0;--text2:rgba(245,239,224,0.68);--text3:rgba(245,239,224,0.42);
+  --green-light:rgba(45,157,92,0.16);--amber-light:rgba(168,94,0,0.22);--red-light:rgba(176,48,32,0.20);
 }
+[data-theme="dark"] body{ background:linear-gradient(180deg,#1C1A14 0%,#17150F 55%,#100E0A 100%)!important; }
+[data-theme="dark"] #s-login{ background:linear-gradient(180deg,#1C1A14 0%,#221E12 55%,#17140C 100%)!important; }
+[data-theme="dark"] .topbar,[data-theme="dark"] .sp-header{ background:linear-gradient(180deg,rgba(36,32,25,0.92) 0%,rgba(30,27,20,0.86) 100%)!important; border-bottom-color:rgba(255,225,150,0.10)!important; }
+[data-theme="dark"] .sub-panel{ background:linear-gradient(180deg,#1C1A14 0%,#17150F 55%,#100E0A 100%)!important; }
+[data-theme="dark"] .card,[data-theme="dark"] .info-rows,[data-theme="dark"] .tx-sheet,[data-theme="dark"] .wheel-sheet,[data-theme="dark"] .field-detail-panel,[data-theme="dark"] .sleep-box,
+[data-theme="dark"] .add-form,[data-theme="dark"] .login-card,[data-theme="dark"] .entry-form-panel,[data-theme="dark"] .confirm-box,
+[data-theme="dark"] .cal-sheet,[data-theme="dark"] .truck-load-bar-wrap{
+  background:linear-gradient(180deg,rgba(36,32,25,0.97) 0%,rgba(30,27,20,0.93) 100%)!important;
+  border-color:rgba(255,225,150,0.12)!important;
+}
+[data-theme="dark"] .scale-panel{ background:linear-gradient(160deg,#2A251C 0%,#242019 45%,#1E1B15 100%)!important; border-color:rgba(255,225,150,0.10)!important; }
+[data-theme="dark"] .scale-main-weight{ color:#F5EFE0!important; }
+[data-theme="dark"] .scale-mode-lbl,[data-theme="dark"] .scale-sub-lbl,[data-theme="dark"] .scale-sub-val,[data-theme="dark"] .scale-unit-lbl,[data-theme="dark"] .stable-pill-inline{ color:var(--text2)!important; }
+[data-theme="dark"] .stable-pill-inline{ background:rgba(255,225,150,0.08)!important; border-color:rgba(255,225,150,0.10)!important; }
+[data-theme="dark"] input,[data-theme="dark"] select,[data-theme="dark"] textarea,
+[data-theme="dark"] .tx-field-group input,[data-theme="dark"] .tx-field-group select,[data-theme="dark"] .tx-field-group textarea,
+[data-theme="dark"] .add-form input,[data-theme="dark"] .fg input,[data-theme="dark"] .fg select{
+  background:var(--surface2)!important; color:var(--text)!important; border-color:var(--border)!important;
+}
+/* "white glassy" buttons → dark glassy, text still tracks var(--text) */
+[data-theme="dark"] .btn-scan,[data-theme="dark"] .btn-logout,[data-theme="dark"] .btn-small-green,[data-theme="dark"] .crop-modal-btn,[data-theme="dark"] .confirm-btn-cancel,
+[data-theme="dark"] .log-gps-btn,[data-theme="dark"] .field-picker-btn,[data-theme="dark"] .tlb-empty-btn,[data-theme="dark"] .seg-btn.active,
+[data-theme="dark"] .fmap-locate-btn,[data-theme="dark"] .fmap-draw-btn,[data-theme="dark"] .fmap-filter-btn.active,[data-theme="dark"] .fdp-edit-btn,
+[data-theme="dark"] .cal-calc-btn,[data-theme="dark"] .btn-sel,[data-theme="dark"] .btn-edit-sm,[data-theme="dark"] .tx-btn-cancel,[data-theme="dark"] .etb-cancel,
+[data-theme="dark"] #dev-ota-btn,[data-theme="dark"] #tdp-edit-btn,[data-theme="dark"] #profile-auth-btn,
+[data-theme="dark"] .abtn-dark,[data-theme="dark"] .abtn-mid,[data-theme="dark"] .abtn-light,[data-theme="dark"] #lp-skip-btn,
+[data-theme="dark"] .sync-circle,[data-theme="dark"] .unsynced-pill{
+  background:linear-gradient(180deg,rgba(40,36,28,0.92),rgba(32,29,22,0.85))!important;
+  border-color:rgba(255,225,150,0.16)!important;
+}
+[data-theme="dark"] .seg-btn.active{ color:#F5EFE0!important; }
+[data-theme="dark"] .info-row:active{ background:rgba(255,225,150,0.10)!important; }
+[data-theme="dark"] .seg-ctrl{ background:var(--surface2)!important; }
+/* Tab bar + its gold active capsule stay exactly as-is (not overridden) */
 </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
@@ -2217,14 +2216,6 @@ function _openPasswordResetWhenReady(){
           <div class="more-row-chevron">›</div>
         </div>
 
-        <div class="more-row" onclick="openMorePanel('diagnostics')">
-          <div class="more-row-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A7AE2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><polyline points="6,9 9,12 6,15"/><line x1="11" y1="15" x2="17" y2="15"/></svg>
-          </div>
-          <div class="more-row-label">Diagnostics</div>
-          <div class="more-row-chevron">›</div>
-        </div>
-
         <div class="more-row" onclick="openMorePanel('cloud')">
           <div class="more-row-icon">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A7AE2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg>
@@ -2238,6 +2229,14 @@ function _openPasswordResetWhenReady(){
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A7AE2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
           </div>
           <div class="more-row-label">Field Map</div>
+          <div class="more-row-chevron">›</div>
+        </div>
+
+        <div class="more-row" onclick="openMorePanel('diagnostics')">
+          <div class="more-row-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A7AE2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><polyline points="6,9 9,12 6,15"/><line x1="11" y1="15" x2="17" y2="15"/></svg>
+          </div>
+          <div class="more-row-label">Diagnostics</div>
           <div class="more-row-chevron">›</div>
         </div>
 
@@ -2417,11 +2416,19 @@ function _openPasswordResetWhenReady(){
         <!-- Language -->
         <div class="card">
           <div class="sp-section-lbl" data-i18n-key="Language">Language</div>
-          <div class="setting-row" style="border-bottom:none;">
+          <div class="setting-row">
             <div><div class="sr-label">Language</div></div>
             <div class="seg-ctrl" id="seg-lang">
               <button class="seg-btn active" data-lang="en" onclick="setLanguage('en')">English</button>
               <button class="seg-btn" data-lang="es" onclick="setLanguage('es')">Español</button>
+            </div>
+          </div>
+          <div class="setting-row" style="border-bottom:none;">
+            <div><div class="sr-label"><span id="lbl-darkmode">Dark Mode</span></div></div>
+            <div class="seg-ctrl" id="seg-theme">
+              <button class="seg-btn" data-mode="auto" onclick="setTheme('auto',this)"><span id="lbl-theme-auto">Auto</span></button>
+              <button class="seg-btn" data-mode="light" onclick="setTheme('light',this)"><span id="lbl-theme-light">Light</span></button>
+              <button class="seg-btn" data-mode="dark" onclick="setTheme('dark',this)"><span id="lbl-theme-dark">Dark</span></button>
             </div>
           </div>
         </div>
@@ -3412,6 +3419,45 @@ let currentWorker=null,btDevice=null,btChar=null,rawWeight=null,tareOffset=0,wei
 let isOnline=navigator.onLine,syncInProgress=false,selectedFarm=null,selectedField=null,scannedDevices=[];
 
 
+// ══ THEME (dark mode) ══
+// Auto-follows the OS/device setting by default (and keeps following live if
+// the OS theme changes while the app is open), unless the user has picked
+// Light or Dark manually in Settings — that choice always wins.
+const LS_THEME = 'ht_theme';                    // 'light' | 'dark' — only meaningful when explicit
+const LS_THEME_EXPLICIT = 'ht_theme_explicit';  // '1' once the user manually overrides
+var _darkMedia = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+function _resolveTheme(){
+  if (localStorage.getItem(LS_THEME_EXPLICIT) === '1') return localStorage.getItem(LS_THEME) || 'light';
+  return (_darkMedia && _darkMedia.matches) ? 'dark' : 'light';
+}
+function _applyTheme(){
+  document.documentElement.setAttribute('data-theme', _resolveTheme());
+}
+_applyTheme();
+if (_darkMedia && _darkMedia.addEventListener) {
+  _darkMedia.addEventListener('change', function(){
+    if (localStorage.getItem(LS_THEME_EXPLICIT) !== '1') _applyTheme();   // only auto-follow when not overridden
+  });
+}
+// mode: 'auto' | 'light' | 'dark'. Called from the Settings toggle.
+function setTheme(mode, btn){
+  if (mode === 'auto') {
+    localStorage.removeItem(LS_THEME_EXPLICIT);
+    localStorage.removeItem(LS_THEME);
+  } else {
+    localStorage.setItem(LS_THEME_EXPLICIT, '1');
+    localStorage.setItem(LS_THEME, mode);
+  }
+  _applyTheme();
+  updateThemeToggleUI();
+  showToast(T('Theme: ')+T(mode==='auto'?'Auto':(mode==='dark'?'Dark':'Light')),'success');
+}
+function updateThemeToggleUI(){
+  var seg = document.getElementById('seg-theme'); if (!seg) return;
+  var mode = localStorage.getItem(LS_THEME_EXPLICIT) === '1' ? (localStorage.getItem(LS_THEME)||'light') : 'auto';
+  seg.querySelectorAll('.seg-btn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-mode') === mode); });
+}
+
 // ══ INTERNATIONALIZATION (i18n) ══
 const LS_LANG = 'ht_lang';
 const LS_LANG_EXPLICIT = 'ht_lang_explicit';   // set once the user manually picks a language
@@ -3522,6 +3568,8 @@ const _i18n = {
   'Unrecognized Scale':'Báscula No Reconocida',
   'This scale could not be verified as genuine Virtus hardware. For your data\'s integrity, the app works only with authentic Virtus scales.':'No se pudo verificar que esta báscula sea un equipo Virtus genuino. Para proteger tus datos, la app solo funciona con básculas Virtus auténticas.',
   'Disconnect':'Desconectar',
+  'Dark Mode':'Modo Oscuro','Auto':'Auto','Light':'Claro','Dark':'Oscuro',
+  'Theme: ':'Tema: ',
   'Weight Unit':'Unidad de Peso',
   'The unit used to display and record weights throughout the app — kilograms, pounds, or bushels. Changing it reformats every reading and log entry.':'La unidad usada para mostrar y registrar pesos en toda la app — kilogramos, libras o bushels. Cambiarla reformatea cada lectura y registro.',
   'Area Unit':'Unidad de Área',
@@ -4103,10 +4151,13 @@ function applyLanguage() {
     var key = map[txt]; if (key) lbl.textContent = T(key);
   });
   // Icon-having labels: translate via their dedicated id span so the ⓘ icon is untouched
-  ['lbl-round','lbl-droptrigger','lbl-idletimeout','lbl-cleardata'].forEach(function(id){
-    var map = {'lbl-round':'Display Rounding','lbl-droptrigger':'Drop Trigger','lbl-idletimeout':'Idle Timeout','lbl-cleardata':'Clear Local Data'};
+  ['lbl-round','lbl-droptrigger','lbl-idletimeout','lbl-cleardata','lbl-darkmode'].forEach(function(id){
+    var map = {'lbl-round':'Display Rounding','lbl-droptrigger':'Drop Trigger','lbl-idletimeout':'Idle Timeout','lbl-cleardata':'Clear Local Data','lbl-darkmode':'Dark Mode'};
     var el = document.getElementById(id); if (el) el.textContent = T(map[id]);
   });
+  var lta=document.getElementById('lbl-theme-auto'); if(lta) lta.textContent=T('Auto');
+  var ltl=document.getElementById('lbl-theme-light'); if(ltl) ltl.textContent=T('Light');
+  var ltd=document.getElementById('lbl-theme-dark'); if(ltd) ltd.textContent=T('Dark');
   document.querySelectorAll('#seg-powersave .seg-btn').forEach(function(b){
     var txt = b.textContent.trim();
     var map = {'Off':'Off','Apagado':'Off','30 min':'30 min','1 hr':'1 hr','1 h':'1 hr','2 hr':'2 hr','2 h':'2 hr'};
@@ -4601,7 +4652,7 @@ function launchApp(){
   renderOperators();
   if(selectedFarm){ var af=document.getElementById('app-farm-name'); if(af) af.textContent=selectedFarm.name; var sf=document.getElementById('settings-farm'); if(sf) sf.textContent=selectedFarm.name; }
   document.getElementById('api-url-input').value=getApiUrl();
-  _initScaleEls();loadAutoDetectSettings();calLoadSaved();loadCalibrationSettings();updateNetPill();refreshQueue();renderLogs();startGeofenceDetector();updateSessionTotal();renderFarms();renderFields();updateSyncStatus();refreshCropDropdown();initUnloadDropdown();updateWeighDisplay();updateFieldZoneDisplay();updateFarmSelectorCard();loadUnitSettings();loadRoleSetting();showTab('weigh');startGPSWatch();updateSeasonDisplayLabel();loadProfilePhoto();applyLanguage();initLangToggle();loadPowerSaveSetting();
+  _initScaleEls();loadAutoDetectSettings();calLoadSaved();loadCalibrationSettings();updateNetPill();refreshQueue();renderLogs();startGeofenceDetector();updateSessionTotal();renderFarms();renderFields();updateSyncStatus();refreshCropDropdown();initUnloadDropdown();updateWeighDisplay();updateFieldZoneDisplay();updateFarmSelectorCard();loadUnitSettings();loadRoleSetting();showTab('weigh');startGPSWatch();updateSeasonDisplayLabel();loadProfilePhoto();applyLanguage();initLangToggle();loadPowerSaveSetting();updateThemeToggleUI();
   // Pull config from server in background
   if(isOnline) setTimeout(pullConfig, 1500);
 }
@@ -4661,7 +4712,7 @@ function openMorePanel(name){
   document.getElementById('sp-'+name).classList.add('open');
   if(name==='devices' && typeof renderCarts==='function') renderCarts();
   if(name==='cloud') updateCloudPanel();
-  if(name==='settings'){ loadUnitSettings(); loadRoleSetting(); loadAutoDetectSettings(); }
+  if(name==='settings'){ loadUnitSettings(); loadRoleSetting(); loadAutoDetectSettings(); updateThemeToggleUI(); }
   if(name==='fieldmap') openFieldMap();
   if(name==='operators'){ renderOperators(); updateOperatorDisplay(); }
   if(name==='season'){ seasonGoBack(); renderSeasons(); updateSeasonDisplay(); }
