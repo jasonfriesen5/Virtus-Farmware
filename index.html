@@ -1572,27 +1572,31 @@ body{
    Placed LAST in the stylesheet so its !important rules win every same-
    specificity tie against earlier unconditional rules. ══ */
 :root[data-theme="dark"]{
-  --bg-top:#1E1E20;--bg-bot:#131314;
-  --bg2:#1E1E20;--surface:#242426;--surface2:#2A2A2C;
-  --border:rgba(255,255,255,0.10);--border2:rgba(255,255,255,0.16);
+  --bg-top:#19191A;--bg-bot:#101011;
+  --bg2:#19191A;--surface:#2E2E31;--surface2:#353538;
+  --border:rgba(255,255,255,0.12);--border2:rgba(255,255,255,0.18);
   --text:#ECECEC;--text2:rgba(236,236,236,0.68);--text3:rgba(236,236,236,0.42);
   --green-light:rgba(45,157,92,0.16);--amber-light:rgba(168,94,0,0.22);--red-light:rgba(176,48,32,0.20);
 }
-[data-theme="dark"] body{ background:linear-gradient(180deg,#1E1E20 0%,#19191B 55%,#131314 100%)!important; }
-[data-theme="dark"] #s-login{ background:linear-gradient(180deg,#1E1E20 0%,#1C1C1E 55%,#131314 100%)!important; }
+[data-theme="dark"] body{ background:linear-gradient(180deg,#19191A 0%,#141415 55%,#101011 100%)!important; }
+[data-theme="dark"] #s-login{ background:linear-gradient(180deg,#19191A 0%,#17171A 55%,#101011 100%)!important; }
 [data-theme="dark"] .topbar,[data-theme="dark"] .sp-header,[data-theme="dark"] .tabbar{
-  background:linear-gradient(180deg,rgba(38,38,40,0.94) 0%,rgba(30,30,32,0.90) 100%)!important;
-  border-color:rgba(255,255,255,0.08)!important;
+  background:linear-gradient(180deg,rgba(46,46,49,0.94) 0%,rgba(38,38,41,0.90) 100%)!important;
+  border-color:rgba(255,255,255,0.09)!important;
 }
-[data-theme="dark"] .sub-panel{ background:linear-gradient(180deg,#1E1E20 0%,#19191B 55%,#131314 100%)!important; }
+[data-theme="dark"] .sub-panel{ background:linear-gradient(180deg,#19191A 0%,#141415 55%,#101011 100%)!important; }
+/* Cards lighter than the near-black page background so they visibly stand out */
 [data-theme="dark"] .card,[data-theme="dark"] .info-rows,[data-theme="dark"] .tx-sheet,[data-theme="dark"] .wheel-sheet,[data-theme="dark"] .field-detail-panel,[data-theme="dark"] .sleep-box,
 [data-theme="dark"] .add-form,[data-theme="dark"] .login-card,[data-theme="dark"] .entry-form-panel,[data-theme="dark"] .confirm-box,
 [data-theme="dark"] .cal-sheet,[data-theme="dark"] .truck-load-bar-wrap,
 [data-theme="dark"] .farm-item,[data-theme="dark"] .field-item{
-  background:linear-gradient(180deg,rgba(44,44,46,0.97) 0%,rgba(36,36,38,0.94) 100%)!important;
-  border-color:rgba(255,255,255,0.09)!important;
+  background:linear-gradient(180deg,rgba(58,58,61,0.97) 0%,rgba(48,48,51,0.94) 100%)!important;
+  border-color:rgba(255,255,255,0.12)!important;
 }
-[data-theme="dark"] .scale-panel{ background:linear-gradient(160deg,#2C2C2E 0%,#242426 45%,#1E1E20 100%)!important; border-color:rgba(255,255,255,0.08)!important; }
+[data-theme="dark"] .scale-panel{ background:linear-gradient(160deg,#3A3A3D 0%,#2E2E31 45%,#242426 100%)!important; border-color:rgba(255,255,255,0.10)!important; }
+/* Tab bar: inactive icons/labels turn light gray; the active tab keeps its
+   dark text (it sits on the gold capsule, which is untouched in dark mode) */
+[data-theme="dark"] .tab-btn:not(.active){ color:#D8D8DA!important; }
 [data-theme="dark"] .scale-main-weight{ color:#ECECEC!important; }
 [data-theme="dark"] .scale-mode-lbl,[data-theme="dark"] .scale-sub-lbl,[data-theme="dark"] .scale-sub-val,[data-theme="dark"] .scale-unit-lbl,[data-theme="dark"] .stable-pill-inline{ color:var(--text2)!important; }
 [data-theme="dark"] .stable-pill-inline{ background:rgba(255,255,255,0.07)!important; border-color:rgba(255,255,255,0.10)!important; }
@@ -1609,8 +1613,8 @@ body{
 [data-theme="dark"] .fmap-locate-btn,[data-theme="dark"] .fmap-draw-btn,[data-theme="dark"] .fmap-filter-btn.active,[data-theme="dark"] .fdp-edit-btn,
 [data-theme="dark"] .cal-calc-btn,[data-theme="dark"] .btn-sel,[data-theme="dark"] .btn-edit-sm,[data-theme="dark"] .tx-btn-cancel,[data-theme="dark"] .etb-cancel,
 [data-theme="dark"] #dev-ota-btn,[data-theme="dark"] #tdp-edit-btn,[data-theme="dark"] #profile-auth-btn,[data-theme="dark"] #lp-skip-btn{
-  background:linear-gradient(180deg,rgba(44,44,46,0.92),rgba(36,36,38,0.85))!important;
-  border-color:rgba(255,255,255,0.14)!important;
+  background:linear-gradient(180deg,rgba(58,58,61,0.92),rgba(48,48,51,0.85))!important;
+  border-color:rgba(255,255,255,0.16)!important;
 }
 [data-theme="dark"] .seg-btn.active{ color:#ECECEC!important; }
 [data-theme="dark"] .info-row:active{ background:rgba(255,255,255,0.08)!important; }
@@ -2131,7 +2135,7 @@ function _openPasswordResetWhenReady(){
         <div class="section-lbl" style="margin:0;">Trucks</div>
         <button onclick="openAddTruckSheet()" class="btn-gold btn-gold-sm">+ Truck</button>
       </div>
-      <div id="trucks-list">
+      <div class="info-rows" id="trucks-list">
         <div class="info-row" style="justify-content:center;color:var(--text3);font-size:13px;cursor:default;">No trucks added yet</div>
       </div>
       <div style="height:6px;"></div>
@@ -4833,7 +4837,8 @@ function renderTrucks(){
     capInput.setAttribute('data-tid', t.id);
     // Wrap row + capacity in a card container
     var card = document.createElement('div');
-    card.style.cssText = 'background:#fff;border-radius:14px;border:1px solid rgba(200,160,0,0.14);margin-bottom:10px;overflow:hidden;box-shadow:0 2px 8px rgba(180,130,0,0.07);';
+    card.className = 'card';
+    card.style.cssText = 'margin-bottom:10px;';
     card.appendChild(row);
     capRow.appendChild(capInput);
     var capUnit = document.createElement('span');
@@ -11437,7 +11442,7 @@ function updateModeBtns(){
     b.style.boxShadow='0 0 0 2px rgba(239,154,12,0.45), 0 2px 9px rgba(210,135,0,0.45)';
     b.style.transform='scale(1.04)'; }
   function off(b){ if(!b)return;
-    b.style.background='#fff'; b.style.color='var(--text3)';
+    b.style.background='var(--surface2)'; b.style.color='var(--text3)';
     b.style.boxShadow='inset 0 0 0 1.5px var(--border)'; b.style.transform='none'; }
   if(sl) sl.style.display = 'none';   // subtitle removed
   if(_appMode === 'remote'){ on(rb); off(pb); }
