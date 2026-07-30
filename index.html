@@ -1448,13 +1448,11 @@ body{
   position:relative;
   flex-shrink:0;
   transition:all 0.3s ease;
-  /* default = loads pending → white glassy */
-  background:linear-gradient(180deg,rgba(255,255,255,0.92),rgba(252,248,241,0.80));
-  -webkit-backdrop-filter:blur(12px) saturate(160%);
-  backdrop-filter:blur(12px) saturate(160%);
-  border:1px solid rgba(255,255,255,0.9);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,1),0 2px 8px rgba(140,100,20,0.14);
-  color:#8A5E00;
+  /* default = loads pending → orange/gold */
+  background:linear-gradient(180deg,#F9D667 0%,#F5C842 55%,#EDB828 100%);
+  border:1px solid rgba(255,255,255,0.55);
+  box-shadow:inset 0 1px 1.5px rgba(255,255,255,0.80),0 2px 8px rgba(150,105,20,0.35);
+  color:#3A2A00;
 }
 .sync-circle:active{transform:scale(0.94);}
 /* All data synced → glowing glassy green */
@@ -1569,51 +1567,55 @@ body{
 
 /* ══ DARK MODE — resolved by JS (auto-follows the OS by default, or forced
    by the user's Settings choice) and applied via [data-theme] on <html>.
-   The gold tab bar and accent colors are intentionally left untouched;
-   everything else (backgrounds → dark, text → light) inverts. Placed LAST
-   in the stylesheet so its !important rules win every same-specificity tie
-   against earlier unconditional rules (e.g. the "white glassy" buttons). ══ */
+   Neutral dark-GRAY surfaces throughout (cards, tab bar, sheets); the gold
+   accent (buttons, active-tab capsule) is intentionally left untouched.
+   Placed LAST in the stylesheet so its !important rules win every same-
+   specificity tie against earlier unconditional rules. ══ */
 :root[data-theme="dark"]{
-  --bg-top:#1C1A14;--bg-bot:#0F0D09;
-  --bg2:#221F17;--surface:#242019;--surface2:#2A251C;
-  --border:rgba(255,225,150,0.14);--border2:rgba(255,225,150,0.22);
-  --text:#F5EFE0;--text2:rgba(245,239,224,0.68);--text3:rgba(245,239,224,0.42);
+  --bg-top:#1E1E20;--bg-bot:#131314;
+  --bg2:#1E1E20;--surface:#242426;--surface2:#2A2A2C;
+  --border:rgba(255,255,255,0.10);--border2:rgba(255,255,255,0.16);
+  --text:#ECECEC;--text2:rgba(236,236,236,0.68);--text3:rgba(236,236,236,0.42);
   --green-light:rgba(45,157,92,0.16);--amber-light:rgba(168,94,0,0.22);--red-light:rgba(176,48,32,0.20);
 }
-[data-theme="dark"] body{ background:linear-gradient(180deg,#1C1A14 0%,#17150F 55%,#100E0A 100%)!important; }
-[data-theme="dark"] #s-login{ background:linear-gradient(180deg,#1C1A14 0%,#221E12 55%,#17140C 100%)!important; }
-[data-theme="dark"] .topbar,[data-theme="dark"] .sp-header{ background:linear-gradient(180deg,rgba(36,32,25,0.92) 0%,rgba(30,27,20,0.86) 100%)!important; border-bottom-color:rgba(255,225,150,0.10)!important; }
-[data-theme="dark"] .sub-panel{ background:linear-gradient(180deg,#1C1A14 0%,#17150F 55%,#100E0A 100%)!important; }
+[data-theme="dark"] body{ background:linear-gradient(180deg,#1E1E20 0%,#19191B 55%,#131314 100%)!important; }
+[data-theme="dark"] #s-login{ background:linear-gradient(180deg,#1E1E20 0%,#1C1C1E 55%,#131314 100%)!important; }
+[data-theme="dark"] .topbar,[data-theme="dark"] .sp-header,[data-theme="dark"] .tabbar{
+  background:linear-gradient(180deg,rgba(38,38,40,0.94) 0%,rgba(30,30,32,0.90) 100%)!important;
+  border-color:rgba(255,255,255,0.08)!important;
+}
+[data-theme="dark"] .sub-panel{ background:linear-gradient(180deg,#1E1E20 0%,#19191B 55%,#131314 100%)!important; }
 [data-theme="dark"] .card,[data-theme="dark"] .info-rows,[data-theme="dark"] .tx-sheet,[data-theme="dark"] .wheel-sheet,[data-theme="dark"] .field-detail-panel,[data-theme="dark"] .sleep-box,
 [data-theme="dark"] .add-form,[data-theme="dark"] .login-card,[data-theme="dark"] .entry-form-panel,[data-theme="dark"] .confirm-box,
-[data-theme="dark"] .cal-sheet,[data-theme="dark"] .truck-load-bar-wrap{
-  background:linear-gradient(180deg,rgba(36,32,25,0.97) 0%,rgba(30,27,20,0.93) 100%)!important;
-  border-color:rgba(255,225,150,0.12)!important;
+[data-theme="dark"] .cal-sheet,[data-theme="dark"] .truck-load-bar-wrap,
+[data-theme="dark"] .farm-item,[data-theme="dark"] .field-item{
+  background:linear-gradient(180deg,rgba(44,44,46,0.97) 0%,rgba(36,36,38,0.94) 100%)!important;
+  border-color:rgba(255,255,255,0.09)!important;
 }
-[data-theme="dark"] .scale-panel{ background:linear-gradient(160deg,#2A251C 0%,#242019 45%,#1E1B15 100%)!important; border-color:rgba(255,225,150,0.10)!important; }
-[data-theme="dark"] .scale-main-weight{ color:#F5EFE0!important; }
+[data-theme="dark"] .scale-panel{ background:linear-gradient(160deg,#2C2C2E 0%,#242426 45%,#1E1E20 100%)!important; border-color:rgba(255,255,255,0.08)!important; }
+[data-theme="dark"] .scale-main-weight{ color:#ECECEC!important; }
 [data-theme="dark"] .scale-mode-lbl,[data-theme="dark"] .scale-sub-lbl,[data-theme="dark"] .scale-sub-val,[data-theme="dark"] .scale-unit-lbl,[data-theme="dark"] .stable-pill-inline{ color:var(--text2)!important; }
-[data-theme="dark"] .stable-pill-inline{ background:rgba(255,225,150,0.08)!important; border-color:rgba(255,225,150,0.10)!important; }
+[data-theme="dark"] .stable-pill-inline{ background:rgba(255,255,255,0.07)!important; border-color:rgba(255,255,255,0.10)!important; }
 [data-theme="dark"] input,[data-theme="dark"] select,[data-theme="dark"] textarea,
 [data-theme="dark"] .tx-field-group input,[data-theme="dark"] .tx-field-group select,[data-theme="dark"] .tx-field-group textarea,
 [data-theme="dark"] .add-form input,[data-theme="dark"] .fg input,[data-theme="dark"] .fg select{
   background:var(--surface2)!important; color:var(--text)!important; border-color:var(--border)!important;
 }
-/* "white glassy" buttons → dark glassy, text still tracks var(--text) */
+/* "white glassy" buttons → dark glassy, text still tracks var(--text). Note:
+   the GOLD buttons (Tare/Clear/Unload, +Add pills, sync circle, etc.) are
+   deliberately NOT in this list so their gold/orange/green stays intact. */
 [data-theme="dark"] .btn-scan,[data-theme="dark"] .btn-logout,[data-theme="dark"] .btn-small-green,[data-theme="dark"] .crop-modal-btn,[data-theme="dark"] .confirm-btn-cancel,
 [data-theme="dark"] .log-gps-btn,[data-theme="dark"] .field-picker-btn,[data-theme="dark"] .tlb-empty-btn,[data-theme="dark"] .seg-btn.active,
 [data-theme="dark"] .fmap-locate-btn,[data-theme="dark"] .fmap-draw-btn,[data-theme="dark"] .fmap-filter-btn.active,[data-theme="dark"] .fdp-edit-btn,
 [data-theme="dark"] .cal-calc-btn,[data-theme="dark"] .btn-sel,[data-theme="dark"] .btn-edit-sm,[data-theme="dark"] .tx-btn-cancel,[data-theme="dark"] .etb-cancel,
-[data-theme="dark"] #dev-ota-btn,[data-theme="dark"] #tdp-edit-btn,[data-theme="dark"] #profile-auth-btn,
-[data-theme="dark"] .abtn-dark,[data-theme="dark"] .abtn-mid,[data-theme="dark"] .abtn-light,[data-theme="dark"] #lp-skip-btn,
-[data-theme="dark"] .sync-circle,[data-theme="dark"] .unsynced-pill{
-  background:linear-gradient(180deg,rgba(40,36,28,0.92),rgba(32,29,22,0.85))!important;
-  border-color:rgba(255,225,150,0.16)!important;
+[data-theme="dark"] #dev-ota-btn,[data-theme="dark"] #tdp-edit-btn,[data-theme="dark"] #profile-auth-btn,[data-theme="dark"] #lp-skip-btn{
+  background:linear-gradient(180deg,rgba(44,44,46,0.92),rgba(36,36,38,0.85))!important;
+  border-color:rgba(255,255,255,0.14)!important;
 }
-[data-theme="dark"] .seg-btn.active{ color:#F5EFE0!important; }
-[data-theme="dark"] .info-row:active{ background:rgba(255,225,150,0.10)!important; }
+[data-theme="dark"] .seg-btn.active{ color:#ECECEC!important; }
+[data-theme="dark"] .info-row:active{ background:rgba(255,255,255,0.08)!important; }
 [data-theme="dark"] .seg-ctrl{ background:var(--surface2)!important; }
-/* Tab bar + its gold active capsule stay exactly as-is (not overridden) */
+/* Tab bar's gold active-tab capsule + all gold/green accent buttons stay exactly as-is (not overridden) */
 </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
