@@ -37,6 +37,13 @@ body{
 }
 .screen{position:absolute;inset:0;display:none;flex-direction:column;}
 .screen.active{display:flex;}
+/* Cap the app to a phone/tablet-width column on wide desktop screens and
+   center it. Without this, full-screen-width backdrop-filter surfaces
+   (.card, .info-rows, etc.) can hit a Chromium/macOS compositor limit on
+   very wide windows and render truncated ("cut off") — capping the width
+   keeps every blurred surface well under that threshold, and also just
+   looks better than a mobile UI stretched edge-to-edge on a monitor. */
+#s-app{max-width:760px;margin-left:auto;margin-right:auto;}
 #s-login{background:linear-gradient(180deg,#FFFEF5 0%,#FDEEA0 55%,#F5C842 100%);align-items:center;justify-content:center;padding:32px 24px;overflow-y:auto;position:fixed;inset:0;z-index:1000;}
 #s-login::before{content:'';position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(45,157,92,0.1) 0%,transparent 65%);top:-80px;right:-80px;pointer-events:none;}
 .login-card{width:100%;max-width:400px;background:#fff;border-radius:var(--radius-xl);border:1px solid rgba(200,160,0,0.2);padding:40px 32px;position:relative;z-index:1;box-shadow:0 8px 40px rgba(180,130,0,0.15);}
@@ -498,10 +505,14 @@ body{
 .sub-panel{
   position:fixed;
   top:0;left:0;right:0;
+  max-width:760px;margin-left:auto;margin-right:auto;
   bottom:var(--tabbar-h);
   background:linear-gradient(180deg,#FDFCF7 0%,#FAF7EF 55%,#F6F1E5 100%);
   overflow-y:auto;
-  transform:translateX(100%);
+  /* 100vw (viewport width), not 100% (own width) — now that this panel is
+     capped+centered, 100% of its own (narrower) width no longer clears a
+     wide viewport, leaving a sliver visible at the right edge when "closed" */
+  transform:translateX(100vw);
   transition:transform 0.22s ease;
   z-index:50;
   will-change:transform;
@@ -681,11 +692,13 @@ body{
 /* ══ FIELD DETAIL PANEL ══ */
 .field-detail-panel{
   position:fixed;
-  top:0;left:0;right:0;bottom:var(--tabbar-h);
+  top:0;left:0;right:0;
+  max-width:760px;margin-left:auto;margin-right:auto;
+  bottom:var(--tabbar-h);
   background:linear-gradient(180deg,#FDFCF7 0%,#FAF7EF 55%,#F6F1E5 100%);
   z-index:80;
   display:flex;flex-direction:column;
-  transform:translateX(100%);
+  transform:translateX(100vw);
   transition:transform 0.22s ease;
   will-change:transform;
 }
@@ -1580,7 +1593,7 @@ body{
 }
 [data-theme="dark"] body{ background:linear-gradient(180deg,#19191A 0%,#141415 55%,#101011 100%)!important; }
 [data-theme="dark"] #s-login{ background:linear-gradient(180deg,#19191A 0%,#17171A 55%,#101011 100%)!important; }
-[data-theme="dark"] .topbar,[data-theme="dark"] .sp-header,[data-theme="dark"] .tabbar{
+[data-theme="dark"] .topbar,[data-theme="dark"] .sp-header,[data-theme="dark"] .tabbar,[data-theme="dark"] .fdp-header{
   background:linear-gradient(180deg,rgba(46,46,49,0.94) 0%,rgba(38,38,41,0.90) 100%)!important;
   border-color:rgba(255,255,255,0.09)!important;
 }
@@ -1590,7 +1603,11 @@ body{
 [data-theme="dark"] .add-form,[data-theme="dark"] .login-card,[data-theme="dark"] .entry-form-panel,[data-theme="dark"] .confirm-box,
 [data-theme="dark"] .cal-sheet,[data-theme="dark"] .truck-load-bar-wrap,
 [data-theme="dark"] .farm-item,[data-theme="dark"] .field-item,
-[data-theme="dark"] .more-list,[data-theme="dark"] .more-profile{
+[data-theme="dark"] .more-list,[data-theme="dark"] .more-profile,
+[data-theme="dark"] .crop-modal,[data-theme="dark"] .sheet,[data-theme="dark"] .log-item,
+[data-theme="dark"] .fdp-stat,[data-theme="dark"] .fdp-tx,
+[data-theme="dark"] .farm-sel-row,[data-theme="dark"] .field-only-row,[data-theme="dark"] .truck-picker-row,
+[data-theme="dark"] .unload-confirm-box,[data-theme="dark"] .empty-truck-box{
   background:linear-gradient(180deg,rgba(58,58,61,0.97) 0%,rgba(48,48,51,0.94) 100%)!important;
   border-color:rgba(255,255,255,0.12)!important;
 }
@@ -1852,7 +1869,8 @@ function _openPasswordResetWhenReady(){
       <!-- GPS / Online / BT pills hidden per user preference (JS still updates them) -->
       <div class="gps-pill gps-off" id="pill-gps" onclick="requestGPS()" title="Tap to enable GPS" style="display:none"><div class="gps-dot"></div><span id="pill-gps-txt">GPS</span></div>
       <div class="status-pill pill-offline" id="pill-net" style="display:none"><div class="pill-dot"></div><span id="pill-net-txt">Offline</span></div>
-      <div class="status-pill pill-bt" id="pill-bt" style="display:none"><div class="pill-dot"></div><span id="pill-bt-txt">BT</span></div>
+      <!-- Topbar "connected device" pill removed per user preference -->
+      <div id="pill-bt" style="display:none;"></div>
       <!-- REMOTE indicator removed per user preference -->
       <div id="pill-remote" style="display:none;"></div>
       <!-- Unsynced-count indicator beside the sync button -->
@@ -2273,7 +2291,8 @@ function _openPasswordResetWhenReady(){
             <div class="card-title">Grain Carts</div>
             <button onclick="openAddCartSheet()" class="btn-gold btn-gold-sm">＋ Add Cart</button>
           </div>
-          <div class="status-pill pill-bt" id="settings-bt-pill" style="display:none"><div class="pill-dot"></div><span id="settings-bt-name">--</span></div>
+          <!-- Connected-device pill removed from the Grain Carts card per user preference (redundant with the "● Connected" status already shown per cart) -->
+          <div id="settings-bt-pill" style="display:none;"></div>
           <div id="carts-list"></div>
         </div>
 
@@ -5837,15 +5856,22 @@ function disconnectBt(){
 }
 
 
+// Name of the currently-selected grain cart, if any — shown in place of the
+// raw BLE device name wherever the app reports "which device is connected",
+// since the cart name (e.g. "Elmer's green cart") is what the user actually
+// identifies with, not the scale's generic model name.
+function _activeCartName(){
+  if(!_activeCartId) return null;
+  var c = getCarts().find(function(x){ return x.id===_activeCartId; });
+  return c ? c.name : null;
+}
 function updateBtPills(connected,name){
-  var pill=document.getElementById('pill-bt'),pillTxt=document.getElementById('pill-bt-txt');
-  var sPill=document.getElementById('settings-bt-pill'),sName=document.getElementById('settings-bt-name');
-  if(connected){pill.style.display='flex';pillTxt.textContent=name||'BT';sPill.style.display='flex';sName.textContent=name||'BT';}
-  else{pill.style.display='none';sPill.style.display='none';}
-  // Also update the ir-bt-status indicator on the display tab directly
+  // Topbar pill + the Grain-Carts-card pill were removed per user preference
+  // (redundant with the per-cart "● Connected" status). Only the Display
+  // tab's device row is kept.
   var btEl = document.getElementById('ir-bt-status');
   if(btEl){
-    if(connected){ btEl.textContent = name||T('Connected'); btEl.style.color = '#1A6B3C'; }
+    if(connected){ btEl.textContent = _activeCartName() || name || T('Connected'); btEl.style.color = '#1A6B3C'; }
     else { btEl.textContent = T('No Devices'); btEl.style.color = 'var(--text)'; }
   }
   // Keep the grain-cart list + add-cart status in sync with the connection
