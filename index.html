@@ -2373,12 +2373,8 @@ function _openPasswordResetWhenReady(){
             <span style="color:#6E7681;">Tap "Run Diagnostics" to collect report...</span>
           </div>
 
-          <!-- Email address input -->
-          <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px;padding:12px 14px;">
-            <div class="sr-label">Send Report To</div>
-            <input type="email" id="diag-email" value="friesenj.jason@gmail.com"
-              style="width:100%;padding:10px 13px;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;font-family:Inter,sans-serif;font-size:14px;color:var(--text);outline:none;">
-          </div>
+          <!-- Support email kept out of view — sendDiagnosticsEmail() reads _DIAG_EMAIL directly -->
+          <input type="hidden" id="diag-email" value="friesenj.jason@gmail.com">
 
           <!-- Buttons -->
           <div style="display:flex;gap:8px;padding:0 14px 14px;">
