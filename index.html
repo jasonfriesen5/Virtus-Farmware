@@ -2381,6 +2381,9 @@ function _openPasswordResetWhenReady(){
             <button class="tx-btn-cancel" style="flex:1;padding:11px;" onclick="runDiagnostics()">Run Diagnostics</button>
             <button class="tx-btn-save" style="flex:1;padding:11px;" onclick="sendDiagnosticsEmail()">Send Email</button>
           </div>
+          <div style="padding:0 14px 14px;">
+            <button class="tx-btn-cancel" style="width:100%;padding:9px;font-size:12px;color:var(--text3);" onclick="clearEventLog()">Clear Event Log</button>
+          </div>
 
           <div style="font-size:11px;color:var(--text3);padding:0 14px 14px;text-align:center;" id="diag-status">
             Run diagnostics first, then send via your email app
@@ -5515,10 +5518,13 @@ async function _handleAuthResponse(nonceHex, sigHex){
   if(_authTimer){ clearTimeout(_authTimer); _authTimer=null; }
   _applyAuthGate();
 }
+var _authWasBlocked = false;
 function _applyAuthGate(){
   var block = document.getElementById('auth-block');
   var blocked = _authEnforce && !!btDevice && !_scaleVerified;
   if(block) block.classList.toggle('open', blocked);
+  if(blocked && !_authWasBlocked) logEvent('auth', 'Blocked unrecognized scale: '+(btDevice&&btDevice.name||'Unknown'));
+  _authWasBlocked = blocked;
 }
 
 // ══ SCALE POWER SAVING ══
@@ -5738,6 +5744,7 @@ async function connectRealDevice(device){
 
     // Handle unexpected disconnection
     device.addEventListener('gattserverdisconnected', function(){
+      logEvent('scale', 'Scale disconnected: '+(btDevice&&btDevice.name||device.name||'Unknown'));
       var wasOtaCompleting = _otaInProgress || _otaJustCompleted;
       // Remember the device before clearing so we can reconnect post-OTA
       if(wasOtaCompleting && btDevice) _otaReconnectDevice = btDevice;
@@ -5777,6 +5784,7 @@ async function connectRealDevice(device){
       btChar.addEventListener('characteristicvaluechanged', handleBleData);
       connected = true;
       showToast('Connected: ' + deviceName, 'success');
+      logEvent('scale', 'Connected: '+deviceName);
       // Request device info and status immediately
       setTimeout(function(){ sendBleCommand('INFO'); }, 500);
       setTimeout(function(){ sendBleCommand('STATUS'); }, 1000);
@@ -9014,6 +9022,39 @@ function clearDeviceInfo(){
 
 var _lastDiagReport = '';
 
+// ══ EVENT LOG ══
+// A rolling history of notable/bad events (scale disconnects, sync failures,
+// GPS loss, unrecognized-scale blocks, uncaught JS errors) — separate from
+// runDiagnostics()'s point-in-time snapshot. This is what lets the report
+// show what actually went wrong earlier, not just the state right now.
+var LS_EVENT_LOG = 'vh_event_log';
+var EVENT_LOG_MAX = 200;
+function getEventLog(){ try{ return JSON.parse(localStorage.getItem(LS_EVENT_LOG)||'[]'); }catch(e){ return []; } }
+function logEvent(category, msg){
+  try{
+    var log = getEventLog();
+    log.push({ ts: Date.now(), category: category, msg: String(msg) });
+    if(log.length > EVENT_LOG_MAX) log = log.slice(log.length - EVENT_LOG_MAX);
+    localStorage.setItem(LS_EVENT_LOG, JSON.stringify(log));
+  }catch(e){}
+}
+function clearEventLog(){
+  localStorage.removeItem(LS_EVENT_LOG);
+  showToast('Event log cleared','success');
+  var el = document.getElementById('diag-status');
+  if(el) el.textContent = 'Event log cleared';
+}
+// Catch uncaught JS errors / rejected promises app-wide — this is what makes
+// the log actually reflect "something went wrong with the app", not just
+// the things we remembered to log by hand.
+window.addEventListener('error', function(e){
+  logEvent('error', (e.message||'Uncaught error') + (e.filename ? ' ('+e.filename.split('/').pop()+':'+e.lineno+')' : ''));
+});
+window.addEventListener('unhandledrejection', function(e){
+  var reason = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+  logEvent('error', 'Unhandled promise rejection: ' + reason);
+});
+
 function termLog(msg, color){
   var t = document.getElementById('diag-terminal');
   if(!t) return;
@@ -9099,6 +9140,22 @@ function runDiagnostics(){
   termLog('Tare offset: '+tareOffset.toFixed(3)+' kg', '#E6EDF3');
   termLog('Net weight: '+(rawWeight!==null?Math.max(0,rawWeight-tareOffset).toFixed(3)+' kg':'No reading'), '#E6EDF3');
 
+  // Recent Events — a rolling history (disconnects, sync failures, GPS loss,
+  // unrecognized-scale blocks, uncaught JS errors), separate from the state
+  // snapshot above. This is what shows something went wrong earlier, not
+  // just what's true right now.
+  termLog('────── Recent Events ──────', '#6E7681');
+  var _evLog = getEventLog();
+  var _evRecent = _evLog.slice(-20).reverse();
+  var _evColors = {error:'#F85149', scale:'#F0B429', sync:'#F0B429', gps:'#F0B429', auth:'#F85149'};
+  if(!_evRecent.length){
+    termLog('No events recorded', '#6E7681');
+  } else {
+    _evRecent.forEach(function(ev){
+      termLog('['+ev.category.toUpperCase()+'] '+esc(ev.msg)+' <span style="color:#6E7681;">— '+new Date(ev.ts).toLocaleString()+'</span>', _evColors[ev.category]||'#E6EDF3');
+    });
+  }
+
   termLog('────── End of Report ──────', '#6E7681');
   termLog('<span style="color:#58A6FF;">Diagnostics complete ✓</span>');
 
@@ -9149,8 +9206,17 @@ function runDiagnostics(){
     'Area Unit: '+getUnits().area,
     'Device Role: '+getDeviceRole(),
     'Auto-Detect Trigger: '+auDropKg+' kg',
+    '',
+    '── RECENT EVENTS ──',
+  ].concat(
+    (function(){
+      var ev = getEventLog().slice(-20).reverse();
+      if(!ev.length) return ['No events recorded'];
+      return ev.map(function(e){ return '['+e.category.toUpperCase()+'] '+e.msg+' — '+new Date(e.ts).toLocaleString(); });
+    })()
+  ).concat([
     '═══════════════════════════════════',
-  ].join('\n');
+  ]).join('\n');
 
   var el = document.getElementById('diag-status');
   if(el) el.textContent = 'Report ready — tap Send Email to dispatch';
@@ -11721,6 +11787,7 @@ var lastGPSLng = null;
 var lastGPSAccuracy = null;
 var gpsWatchId = null;
 
+var _gpsWasActive = false;
 function startGPSWatch(){
   if(!navigator.geolocation){ updateGPSPill('off'); return; }
   updateGPSPill('searching');
@@ -11730,9 +11797,12 @@ function startGPSWatch(){
       lastGPSLng = parseFloat(pos.coords.longitude.toFixed(6));
       lastGPSAccuracy = Math.round(pos.coords.accuracy||0);
       updateGPSPill('on');
+      _gpsWasActive = true;
     },
     function(err){
       updateGPSPill('off');
+      if(_gpsWasActive) logEvent('gps', 'GPS lost: '+(err.message||'no fix'));   // only log the ON→OFF transition, not every retry
+      _gpsWasActive = false;
     },
     {enableHighAccuracy:true, maximumAge:15000, timeout:10000}
   );
@@ -11988,6 +12058,7 @@ async function syncQueue(){
     showToast('Synced '+synced+' record'+(synced>1?'s':''),'success');
   } else if(failed.length>0){
     showToast('Sync failed — '+failed.length+' record'+(failed.length>1?'s':'')+' pending','error');
+    logEvent('sync', failed.length+' record'+(failed.length>1?'s':'')+' failed to sync');
   }
   updateCloudPanel();
 }
