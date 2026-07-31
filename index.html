@@ -206,10 +206,10 @@ body{
 .section-lbl:first-child{margin-top:2px;}
 .farm-list,.field-list{display:flex;flex-direction:column;gap:7px;}
 .farm-item,.field-item{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 1px 4px rgba(180,130,0,0.05);}
-.farm-item.active,.field-item.active{border-color:#2D9D5C;background:rgba(45,157,92,0.08);}
+.farm-item.active,.field-item.active{border-color:#EDB828;background:rgba(237,184,40,0.10);}
 .fi-left{display:flex;align-items:center;gap:10px;}
 .fi-dot{width:9px;height:9px;border-radius:50%;background:var(--surface2);border:2px solid var(--border2);flex-shrink:0;transition:all 0.2s;}
-.farm-item.active .fi-dot,.field-item.active .fi-dot{background:#2D9D5C;border-color:#2D9D5C;}
+.farm-item.active .fi-dot,.field-item.active .fi-dot{background:#EDB828;border-color:#EDB828;}
 .fi-name{font-size:14px;font-weight:500;color:var(--text);}
 .farm-item.active .fi-name,.field-item.active .fi-name{color:var(--text);font-weight:700;}
 .fi-sub{font-size:11px;color:var(--text3);margin-top:1px;}
@@ -1589,7 +1589,8 @@ body{
 [data-theme="dark"] .card,[data-theme="dark"] .info-rows,[data-theme="dark"] .tx-sheet,[data-theme="dark"] .wheel-sheet,[data-theme="dark"] .field-detail-panel,[data-theme="dark"] .sleep-box,
 [data-theme="dark"] .add-form,[data-theme="dark"] .login-card,[data-theme="dark"] .entry-form-panel,[data-theme="dark"] .confirm-box,
 [data-theme="dark"] .cal-sheet,[data-theme="dark"] .truck-load-bar-wrap,
-[data-theme="dark"] .farm-item,[data-theme="dark"] .field-item{
+[data-theme="dark"] .farm-item,[data-theme="dark"] .field-item,
+[data-theme="dark"] .more-list,[data-theme="dark"] .more-profile{
   background:linear-gradient(180deg,rgba(58,58,61,0.97) 0%,rgba(48,48,51,0.94) 100%)!important;
   border-color:rgba(255,255,255,0.12)!important;
 }
@@ -1965,7 +1966,7 @@ function _openPasswordResetWhenReady(){
         <!-- Field row -->
         <div class="info-row" onclick="openFieldOnlyPicker()">
           <div class="info-row-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A1F00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="3,5 21,3 22,19 2,21"/><line x1="3.2" y1="9" x2="21.6" y2="7.4"/><line x1="3.4" y1="13" x2="21.8" y2="11.4"/><line x1="3.6" y1="17" x2="21.9" y2="15.4"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="3,5 21,3 22,19 2,21"/><line x1="3.2" y1="9" x2="21.6" y2="7.4"/><line x1="3.4" y1="13" x2="21.8" y2="11.4"/><line x1="3.6" y1="17" x2="21.9" y2="15.4"/></svg>
           </div>
           <div class="info-row-main">
             <div class="info-row-title" id="ir-field">Select Field</div>
@@ -1981,7 +1982,7 @@ function _openPasswordResetWhenReady(){
         <!-- Buggy / Truck row -->
         <div class="info-row" onclick="openTruckPicker()">
           <div class="info-row-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A1F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 6v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 6v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
           </div>
           <div class="info-row-main">
             <div class="info-row-title" id="ir-buggy-title" style="color:var(--text);">No Truck</div>
@@ -1993,7 +1994,7 @@ function _openPasswordResetWhenReady(){
         <!-- Unload location row -->
         <div class="info-row" onclick="openUnloadPicker()">
           <div class="info-row-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A1F00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12,2 19,9 5,9"/><rect x="5" y="9" width="14" height="12"/><line x1="5" y1="21" x2="19" y2="21"/><line x1="5" y1="13" x2="19" y2="13" stroke-dasharray="2 2"/><line x1="5" y1="17" x2="19" y2="17" stroke-dasharray="2 2"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12,2 19,9 5,9"/><rect x="5" y="9" width="14" height="12"/><line x1="5" y1="21" x2="19" y2="21"/><line x1="5" y1="13" x2="19" y2="13" stroke-dasharray="2 2"/><line x1="5" y1="17" x2="19" y2="17" stroke-dasharray="2 2"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/></svg>
           </div>
           <div class="info-row-main">
             <div class="info-row-title" id="ir-unload" style="color:var(--text);">Select Destination</div>
@@ -2010,7 +2011,7 @@ function _openPasswordResetWhenReady(){
         <div class="info-row info-row-split">
           <div class="ir-tap ir-tap-left" onclick="openWorkerPicker()">
             <div class="info-row-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2A1F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
             <div class="info-row-main">
               <div class="info-row-sub" style="font-size:11px;color:var(--text);font-weight:600;letter-spacing:0.03em;text-transform:uppercase;">Operator</div>
@@ -2019,7 +2020,7 @@ function _openPasswordResetWhenReady(){
           </div>
           <div class="ir-tap" onclick="openDeviceTab()" style="border-left:1px solid rgba(42,31,0,0.14);">
             <div class="info-row-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A1F00" stroke-width="2"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/></svg>
             </div>
             <div class="info-row-title" id="ir-bt-status" style="color:var(--text);font-size:13px;margin-left:4px;">No Devices</div>
             <div class="info-row-chevron">›</div>
@@ -2135,7 +2136,7 @@ function _openPasswordResetWhenReady(){
         <div class="section-lbl" style="margin:0;">Trucks</div>
         <button onclick="openAddTruckSheet()" class="btn-gold btn-gold-sm">+ Truck</button>
       </div>
-      <div class="info-rows" id="trucks-list">
+      <div id="trucks-list">
         <div class="info-row" style="justify-content:center;color:var(--text3);font-size:13px;cursor:default;">No trucks added yet</div>
       </div>
       <div style="height:6px;"></div>
@@ -4803,7 +4804,7 @@ function renderTrucks(){
     row.className='info-row';
     row.style.cursor='pointer';
     row.innerHTML=
-      '<div class="info-row-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A1F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 6v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>'+
+      '<div class="info-row-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 6v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>'+
       '<div class="info-row-main"><div class="info-row-title" style="color:var(--text);">'+esc(t.name)+(t.plate?' <span style="font-size:11px;font-weight:600;color:rgba(42,122,226,0.6);background:rgba(42,122,226,0.08);padding:2px 7px;border-radius:6px;">'+esc(t.plate)+'</span>':'')+'</div><div class="info-row-sub">'+(t.driver?esc(t.driver)+' · ':'')+fmtWt(totalKg,'')+' · '+truckLogs.length+' '+T(truckLogs.length!==1?'loads':'load')+'</div></div>'+
       '<div class="info-row-right" style="display:flex;align-items:center;gap:6px;"></div>';
     var right=row.querySelector('.info-row-right');
@@ -4888,7 +4889,7 @@ function renderDestinations(){
     row.className='info-row';
     row.style.cursor='pointer';
     row.innerHTML=
-      '<div class="info-row-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A1F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="9" width="14" height="11" rx="1"/><path d="M5 9 Q5 3 12 3 Q19 3 19 9"/><line x1="9" y1="9" x2="9" y2="20"/><line x1="15" y1="9" x2="15" y2="20"/><line x1="5" y1="15" x2="19" y2="15" stroke-dasharray="2 2"/></svg></div>'+
+      '<div class="info-row-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="9" width="14" height="11" rx="1"/><path d="M5 9 Q5 3 12 3 Q19 3 19 9"/><line x1="9" y1="9" x2="9" y2="20"/><line x1="15" y1="9" x2="15" y2="20"/><line x1="5" y1="15" x2="19" y2="15" stroke-dasharray="2 2"/></svg></div>'+
       '<div class="info-row-main"><div class="info-row-title" style="color:var(--text);">'+esc(d.name)+'</div>'+
       '<div class="info-row-sub">'+fmtWt(totalKg,'')+' · '+destLogs.length+' '+T(destLogs.length!==1?'loads':'load')+'</div></div>'+
       '<div class="info-row-right" style="display:flex;align-items:center;gap:6px;"></div>';
@@ -8964,7 +8965,7 @@ function renderCarts(){
     row.className='info-row'; row.style.cursor='pointer';
     if(active) row.style.background='rgba(245,200,66,0.14)';
     row.innerHTML =
-      '<div class="info-row-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2A1F00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="15" height="10" rx="1"/><path d="M16 9h4l3 3v4h-7z"/><circle cx="5.5" cy="18.5" r="1.6"/><circle cx="18.5" cy="18.5" r="1.6"/></svg></div>'+
+      '<div class="info-row-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h16l-2.3 8.5H6.3z"/><path d="M14.5 7V3.8a1 1 0 0 1 1-1H17"/><path d="M15.7 2.8h3"/><line x1="3.6" y1="15.5" x2="18.4" y2="15.5"/><circle cx="8" cy="19.2" r="1.7"/><circle cx="15" cy="19.2" r="1.7"/></svg></div>'+
       '<div class="info-row-main"><div class="info-row-title" style="color:var(--text);">'+esc(c.name)+'</div>'+
       '<div class="info-row-sub">'+(isConn?'● Connected':(active?T('Selected')+' · '+esc(c.deviceName||'scale'):esc(c.deviceName||'scale')))+'</div></div>'+
       '<div class="info-row-right" style="display:flex;align-items:center;gap:6px;"></div>';
