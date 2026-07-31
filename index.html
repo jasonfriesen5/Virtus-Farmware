@@ -2627,6 +2627,12 @@ function _openPasswordResetWhenReady(){
           <button class="fmap-draw-btn save" onclick="fmapSaveBoundary()">Save</button>
           <button class="fmap-draw-btn" onclick="fmapCancelDraw()">Cancel</button>
         </div>
+        <!-- Edit-boundary bar (shown while dragging an existing boundary's points) -->
+        <div class="fmap-draw-bar" id="fmap-edit-bar">
+          <span class="fmap-draw-pts" id="fmap-edit-label">Drag the points to adjust</span>
+          <button class="fmap-draw-btn save" onclick="fmapSaveEditedBoundary()">Save</button>
+          <button class="fmap-draw-btn" onclick="fmapCancelEditBoundary()">Cancel</button>
+        </div>
         <div id="fmap-container">
           <div class="fmap-empty" id="fmap-empty" style="display:none;">No GPS data found for any field or transaction yet.</div>
         </div>
@@ -8095,6 +8101,16 @@ function openFieldMap(){
   setTimeout(function(){
     _fmapInit();
     _fmapRender(_fmapFilter);
+    // If a field is currently selected and has a drawn boundary, zoom
+    // straight to it — that's more useful than the general filter view.
+    if(selectedField){
+      var pts = getBoundaries()[selectedField.id];
+      if(pts && pts.length >= 3){
+        var b = new google.maps.LatLngBounds();
+        pts.forEach(function(p){ b.extend({lat:p.lat,lng:p.lng}); });
+        _fmap.fitBounds(b, 80);
+      }
+    }
   }, 320);
 }
 
@@ -8170,17 +8186,26 @@ function _fmapRender(filter){
   var allLogs   = getLogs();
   var allFields = getFields();
   var farms     = getFarms();
+  var boundaries= getBoundaries();
   var bounds    = new google.maps.LatLngBounds();
   var hasPoints = false;
 
-  // ── LOGGED ENTRIES — disabled (transaction pins hidden) ──
-
-  // ── FIELD CENTROIDS ──
   if(filter === 'all' || filter === 'farm'){
-    var filterFarm = (filter==='farm' && selectedFarm) ? selectedFarm.name : null;
+    // "All Fields" / "This Farm" — fit to the drawn field BOUNDARIES
+    // themselves (not the user's GPS location, and not logged-entry pins).
+    var filterFarmId = (filter==='farm' && selectedFarm) ? selectedFarm.id : null;
+    allFields.forEach(function(field){
+      if(filterFarmId && field.farmId!==filterFarmId) return;
+      var pts = boundaries[field.id];
+      if(!pts || pts.length < 3) return;
+      pts.forEach(function(p){ bounds.extend({lat:p.lat,lng:p.lng}); });
+      hasPoints = true;
+    });
+  } else if(filter === 'logs'){
+    // "Logged Entries" — fit to the actual logged-transaction locations
+    // (one pin per field, averaged from that field's logged GPS points).
     allFields.forEach(function(field){
       var farm = farms.find(function(f){ return f.id===field.farmId; });
-      if(filterFarm && (!farm||farm.name!==filterFarm)) return;
       var fieldLogs = allLogs.filter(function(l){ return (l.fieldId===field.id||l.zone===field.name)&&l.lat&&l.lng; });
       if(!fieldLogs.length) return;
       var avgLat = fieldLogs.reduce(function(s,l){return s+l.lat;},0)/fieldLogs.length;
@@ -8380,13 +8405,103 @@ function _fmapRenderBoundaries(){
     if(field && _fmapInfoWindow){
       var farm = farms.find(function(f){ return f.id===field.farmId; });
       var label = (farm ? farm.name+' › ' : '') + field.name;
-      poly.addListener('click', function(e){
-        _fmapInfoWindow.setContent('<div class="fmap-popup-title">'+esc(label)+'</div>');
-        _fmapInfoWindow.setPosition(e.latLng);
-        _fmapInfoWindow.open(_fmap);
-      });
+      (function(fid, lbl){
+        poly.addListener('click', function(e){
+          _fmapInfoWindow.setContent(
+            '<div class="fmap-popup-title">'+esc(lbl)+'</div>'+
+            '<div class="fmap-popup-row" style="display:flex;gap:8px;margin-top:6px;">'+
+              '<span class="fmap-popup-gps" onclick="fmapEditBoundary(\''+fid+'\')">Edit</span>'+
+              '<span class="fmap-popup-gps" style="color:#B03020;" onclick="fmapDeleteBoundaryConfirm(\''+fid+'\')">Delete</span>'+
+            '</div>'
+          );
+          _fmapInfoWindow.setPosition(e.latLng);
+          _fmapInfoWindow.open(_fmap);
+        });
+      })(fieldId, label);
     }
     _fmapBoundaryPolygons.push(poly);
+  });
+}
+
+// ── Edit an existing boundary by dragging its own points (Google Maps
+// native editable polygon) — separate from "Draw Boundary", which starts a
+// brand new shape from scratch. ──
+var _editingFieldId = null;
+var _editingPolygon = null;
+function fmapEditBoundary(fieldId){
+  if(!_fmap) return;
+  _fmapInfoWindow.close();
+  var field = getFields().find(function(f){ return f.id===fieldId; });
+  var pts = getBoundaries()[fieldId];
+  if(!pts || pts.length < 3) return;
+  // Redraw the static boundaries, then overlay one draggable/editable
+  // polygon on top for this specific field — simpler and more reliable
+  // than trying to toggle editable on an existing polygon in place.
+  _fmapRenderBoundaries();
+  _editingPolygon = new google.maps.Polygon({
+    paths: pts, map: _fmap,
+    strokeColor:'#D4930A', strokeWeight:3, strokeOpacity:1,
+    fillColor:'#D4930A', fillOpacity:0.18,
+    editable:true, draggable:false
+  });
+  _editingFieldId = fieldId;
+  document.getElementById('fmap-draw-bar').classList.remove('active');
+  var lbl = document.getElementById('fmap-edit-label');
+  if(lbl) lbl.textContent = 'Editing '+(field?field.name:'boundary')+' — drag the points';
+  document.getElementById('fmap-edit-bar').classList.add('active');
+  showToast('Drag the corner points, then Save','success');
+}
+function fmapSaveEditedBoundary(){
+  if(!_editingPolygon || !_editingFieldId){ fmapCancelEditBoundary(); return; }
+  var path = _editingPolygon.getPath();
+  var pts = [];
+  for(var i=0;i<path.getLength();i++){ var pt=path.getAt(i); pts.push({lat:pt.lat(), lng:pt.lng()}); }
+  if(pts.length < 3){ showToast('Need at least 3 points','error'); return; }
+
+  var fieldId = _editingFieldId;
+  var boundaries = getBoundaries();
+  boundaries[fieldId] = pts;
+  saveBoundaries(boundaries);
+  syncBoundary(fieldId, pts);
+
+  // Recalculate area, same as a fresh draw
+  var areaHa = calcPolygonAreaHa(pts);
+  var fields = getFields();
+  var fidx = fields.findIndex(function(f){ return f.id===fieldId; });
+  if(fidx !== -1 && areaHa > 0){
+    var prevUnit = fields[fidx].areaUnit || getUnits().area || 'ha';
+    if(prevUnit === 'ac'){ fields[fidx].area = parseFloat((areaHa*2.47105).toFixed(2)); fields[fidx].areaUnit='ac'; }
+    else { fields[fidx].area = parseFloat(areaHa.toFixed(2)); fields[fidx].areaUnit='ha'; }
+    saveFields(fields);
+    if(selectedField && selectedField.id===fieldId) selectedField = fields[fidx];
+    updateWeighDisplay();
+  }
+
+  showToast('Boundary updated'+(fields[fidx]?' for '+fields[fidx].name:''),'success');
+  fmapCancelEditBoundary();
+}
+function fmapCancelEditBoundary(){
+  if(_editingPolygon){ _editingPolygon.setMap(null); _editingPolygon=null; }
+  _editingFieldId = null;
+  document.getElementById('fmap-edit-bar').classList.remove('active');
+  _fmapRenderBoundaries();
+}
+function fmapDeleteBoundaryConfirm(fieldId){
+  _fmapInfoWindow.close();
+  var field = getFields().find(function(f){ return f.id===fieldId; });
+  showConfirm({
+    title: T('Delete Boundary?'),
+    msg: T('Remove the drawn boundary for')+' "'+(field?field.name:'')+'"? '+T('The field itself is not deleted — you can draw a new boundary later.'),
+    okLabel: T('Delete'),
+    okColor: '#B03020'
+  }).then(function(ok){
+    if(!ok) return;
+    var boundaries = getBoundaries();
+    delete boundaries[fieldId];
+    saveBoundaries(boundaries);
+    deleteSyncBoundary(fieldId);
+    _fmapRenderBoundaries();
+    showToast('Boundary deleted','warn');
   });
 }
 
