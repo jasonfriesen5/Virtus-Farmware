@@ -29,7 +29,7 @@
 #include "sha256.h"
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.7.4"
+#define FIRMWARE_VERSION   "1.7.6"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "Virtus Scale"   // advertised name (app scans by NUS UUID + name prefix)
 #define MAX_CONNECTIONS    4                // simultaneous BLE clients
@@ -106,8 +106,26 @@ void blinkPixel(uint8_t r, uint8_t g, uint8_t b, uint8_t count) {
 using namespace Adafruit_LittleFS_Namespace;
 #define CAL_FILE "/virtus_cal.dat"
 
+#define CAL_MAGIC          0x56495254UL   // "VIRT"
+#define CAL_LAYOUT_VERSION 2
+
+// Layout as shipped through v1.7.4. Kept only so an existing file can be
+// migrated on first boot of a newer build instead of being discarded — losing a
+// customer's calibration during a firmware update would be silent and would
+// show up as a scale that quietly reads wrong.
+struct CalDataV1 {
+  uint32_t magic;
+  float    calFactor;
+  float    sensMvV;
+  float    capacity;
+  int32_t  tareOffset;
+  float    resolution;
+};
+
 struct CalData {
-  uint32_t magic;          // 0x56495254 "VIRT" when valid
+  uint32_t magic;          // CAL_MAGIC when valid
+  uint16_t layoutVer;      // bump CAL_LAYOUT_VERSION on ANY field change
+  uint16_t reserved;       // keeps the floats below 4-byte aligned
   float    calFactor;
   float    sensMvV;
   float    capacity;
@@ -144,7 +162,9 @@ void recomputeScale() {
 }
 
 void calDefaults() {
-  cal.magic      = 0x56495254;
+  cal.magic      = CAL_MAGIC;
+  cal.layoutVer  = CAL_LAYOUT_VERSION;
+  cal.reserved   = 0;
   cal.calFactor  = DEFAULT_CALFACTOR;
   cal.sensMvV    = DEFAULT_SENS_MVV;
   cal.capacity   = DEFAULT_CAPACITY;
@@ -162,14 +182,36 @@ void calSave() {
 }
 
 void calLoad() {
+  // Read into a scratch buffer, not straight over `cal`: a stale or truncated
+  // file would otherwise leave half-written values behind when validation fails.
+  uint8_t buf[64];
   int got = 0;
   File f(InternalFS);
   if (f.open(CAL_FILE, FILE_O_READ)) {
-    got = f.read((uint8_t*)&cal, sizeof(cal));
+    got = f.read(buf, sizeof(buf));
     f.close();
   }
-  // struct grew in v1.3.0 — a short read means stale layout, start fresh
-  if (got != (int)sizeof(cal) || cal.magic != 0x56495254) calDefaults();
+
+  bool ok = false;
+  if (got == (int)sizeof(CalData)) {
+    CalData* d = (CalData*)buf;
+    if (d->magic == CAL_MAGIC && d->layoutVer == CAL_LAYOUT_VERSION) { cal = *d; ok = true; }
+  } else if (got == (int)sizeof(CalDataV1)) {
+    // Pre-1.7.5 file: carry the calibration across and rewrite in the new
+    // layout, so an OTA from 1.7.4 keeps the scale calibrated.
+    CalDataV1* v1 = (CalDataV1*)buf;
+    if (v1->magic == CAL_MAGIC) {
+      calDefaults();
+      cal.calFactor  = v1->calFactor;
+      cal.sensMvV    = v1->sensMvV;
+      cal.capacity   = v1->capacity;
+      cal.tareOffset = v1->tareOffset;
+      cal.resolution = v1->resolution;
+      calSave();
+      ok = true;
+    }
+  }
+  if (!ok) calDefaults();
   if (cal.resolution < 0.01f || cal.resolution > 1000.0f) cal.resolution = DEFAULT_RESOLUTION;
   recomputeScale();
 }

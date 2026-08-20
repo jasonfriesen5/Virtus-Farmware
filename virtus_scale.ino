@@ -29,7 +29,7 @@
 #include "sha256.h"
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.7.5"
+#define FIRMWARE_VERSION   "1.7.6"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "Virtus Scale"   // advertised name (app scans by NUS UUID + name prefix)
 #define MAX_CONNECTIONS    4                // simultaneous BLE clients
