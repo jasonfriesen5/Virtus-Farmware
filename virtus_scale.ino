@@ -29,7 +29,7 @@
 #include "sha256.h"
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.7.6"
+#define FIRMWARE_VERSION   "1.7.7"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "Virtus Scale"   // advertised name (app scans by NUS UUID + name prefix)
 #define MAX_CONNECTIONS    4                // simultaneous BLE clients
@@ -88,8 +88,10 @@ Adafruit_NeoPixel statusPixel(NEOPIXEL_NUM, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
 //   yellow heartbeat every 10 s = powered, no client
 //   double green flash          = a client just connected
 //   green heartbeat every 10 s  = connected
+// Set to 1 to bring the heartbeat blink back; left off to save battery.
+#define STATUS_LED_ENABLED 0
 void blinkPixel(uint8_t r, uint8_t g, uint8_t b, uint8_t count) {
-#ifdef PIN_NEOPIXEL
+#if defined(PIN_NEOPIXEL) && STATUS_LED_ENABLED
   for (uint8_t i = 0; i < count; i++) {
     statusPixel.setPixelColor(0, statusPixel.Color(r, g, b));
     statusPixel.show();
@@ -718,7 +720,7 @@ void setup() {
   Bluefruit.Periph.setDisconnectCallback(disconnectCallback);
   uECC_set_rng(&auth_rng);     // hardware RNG for ECDSA signing (SoftDevice up)
 
-#ifdef PIN_NEOPIXEL
+#if defined(PIN_NEOPIXEL) && STATUS_LED_ENABLED
   statusPixel.begin();
   statusPixel.clear();
   statusPixel.show();
