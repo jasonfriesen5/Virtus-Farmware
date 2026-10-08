@@ -29,7 +29,7 @@
 #include "sha256.h"
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.7.7"
+#define FIRMWARE_VERSION   "1.7.8"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "Virtus Scale"   // advertised name (app scans by NUS UUID + name prefix)
 #define MAX_CONNECTIONS    4                // simultaneous BLE clients
@@ -74,6 +74,10 @@
 // STABLE_WINDOW readings is under STABLE_BAND (kg)
 #define STABLE_WINDOW      8
 #define STABLE_BAND        0.5f
+// How often a weight packet is sent over BLE. The NAU7802 still samples at
+// 10 SPS (its slowest rate) so smoothing/stability are unchanged; only the
+// radio transmit rate drops, which is the main battery cost while connected.
+#define REPORT_INTERVAL_MS 1000
 
 // ─────────────────────── GLOBALS ───────────────────────
 NAU7802 nau;
@@ -890,12 +894,17 @@ void loop() {
       stable = (mx - mn) < STABLE_BAND;
     }
 
-    bleSend("P:" + String(netR, 1) + ",L:" + String(grossR, 1) +
-            ",S:" + (stable ? "1" : "0") + ",U:0");
+    static uint32_t lastReportMs = 0;
+    if (millis() - lastReportMs >= REPORT_INTERVAL_MS) {
+      lastReportMs = millis();
+      bleSend("P:" + String(netR, 1) + ",L:" + String(grossR, 1) +
+              ",S:" + (stable ? "1" : "0") + ",U:0");
+    }
   }
 
   // pace the loop to ~40 Hz and let the CPU sleep in between. The
-  // NAU7802 samples at 10 SPS, so this still catches every reading and
-  // streams at 10 Hz, while the M4 core idles most of the time.
+  // NAU7802 samples at 10 SPS, so this still catches every reading (feeding
+  // the filter and stability window) while BLE reports go out once per
+  // REPORT_INTERVAL_MS and the M4 core idles most of the time.
   delay(25);
 }
