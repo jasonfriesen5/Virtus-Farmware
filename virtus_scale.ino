@@ -29,9 +29,9 @@
 #include "sha256.h"
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.7.8"
+#define FIRMWARE_VERSION   "1.8.0"
 #define MODEL_NAME         "VirtusScale"
-#define BLE_NAME           "Virtus Scale"   // advertised name (app scans by NUS UUID + name prefix)
+#define BLE_NAME           "Virtus Scale"   // GAP device name only — NOT advertised since 1.8.0
 #define MAX_CONNECTIONS    4                // simultaneous BLE clients
 
 // I2C pins the NAU7802 is wired to. Defaults to the selected board's
@@ -223,6 +223,9 @@ void calLoad() {
 }
 
 // ─────────────────────── BLE OUTPUT ───────────────────────
+bool appAuthed[BLE_MAX_CONNECTION];   // connection proved it is Virtus Cart (see APP_KEY)
+volatile uint32_t infoDueAt = 0;      // when to volunteer INFO+STATUS (after APP_OK)
+volatile uint32_t chalDueAt = 0;      // when to send fresh connections their CHAL
 bool bleReady = false;   // true once Bluefruit.begin() has succeeded
 
 // fan out to every connected client that enabled notifications.
@@ -261,6 +264,7 @@ void bleSend(const String& s) {
     size_t total = line.length();
     for (uint16_t h = 0; h < BLE_MAX_CONNECTION; h++) {
       if (!Bluefruit.connected(h) || !bleuart.notifyEnabled(h)) continue;
+      if (!appAuthed[h]) continue;          // not Virtus Cart (yet) — sees nothing
       bleWriteChunks(h, p, total);
     }
   }
@@ -283,7 +287,7 @@ void bleSendTo(uint16_t h, const String& s) {
 int32_t firstConnectedExcept(int32_t except) {
   for (uint16_t h = 0; h < BLE_MAX_CONNECTION; h++) {
     if ((int32_t)h == except) continue;
-    if (Bluefruit.connected(h)) return (int32_t)h;
+    if (Bluefruit.connected(h) && appAuthed[h]) return (int32_t)h;
   }
   return -1;
 }
@@ -297,7 +301,7 @@ void ensurePrimary() {
 void broadcastRoles() {
   ensurePrimary();
   for (uint16_t h = 0; h < BLE_MAX_CONNECTION; h++) {
-    if (!Bluefruit.connected(h) || !bleuart.notifyEnabled(h)) continue;
+    if (!Bluefruit.connected(h) || !bleuart.notifyEnabled(h) || !appAuthed[h]) continue;
     bleSendTo(h, ((int32_t)h == primaryConn) ? "ROLE:primary" : "ROLE:remote");
   }
 }
@@ -361,6 +365,49 @@ void handleAuth(const String& nonceHex) {
   } else {
     bleSend("AUTHR:" + nonceHex + ":err");
   }
+}
+
+// ── Only Virtus Cart may use the scale (1.8.0) ──
+// The scale used to prove itself to the app (AUTH above) but took commands
+// from anything that connected. Now each connection gets a random challenge
+// ("CHAL:<hex>") and must answer "APP:<HMAC-SHA256(APP_KEY, challenge)>"
+// before the scale sends it a single reading or obeys a single command.
+// Until then it only answers HELLO (re-send the challenge) and APP:.
+static const uint8_t APP_KEY[32] = {
+  0x3e,0x2f,0x40,0x8b,0x9d,0x11,0x27,0x0e,0x5e,0x9b,0x78,0xf1,0x75,0x9e,0x86,0x9e,
+  0xc6,0x73,0x2e,0x81,0xb0,0x70,0x92,0x34,0xcd,0xde,0x4f,0x68,0x37,0xb8,0xd3,0xcc
+};
+uint8_t appChal[BLE_MAX_CONNECTION][16];
+bool    appChalSet[BLE_MAX_CONNECTION];
+
+static void hmacSha256(const uint8_t* key, size_t klen, const uint8_t* msg, size_t mlen, uint8_t out[32]) {
+  uint8_t k[64]; memset(k, 0, 64); memcpy(k, key, klen > 64 ? 64 : klen);
+  uint8_t buf[64 + 64];
+  uint8_t inner[32];
+  if (mlen > 64) mlen = 64;
+  for (int i = 0; i < 64; i++) buf[i] = k[i] ^ 0x36;
+  memcpy(buf + 64, msg, mlen);
+  sha256(buf, 64 + mlen, inner);
+  for (int i = 0; i < 64; i++) buf[i] = k[i] ^ 0x5c;
+  memcpy(buf + 64, inner, 32);
+  sha256(buf, 64 + 32, out);
+}
+
+void sendAppChallenge(uint16_t h) {
+  if (h >= BLE_MAX_CONNECTION) return;
+  if (!appChalSet[h]) { auth_rng(appChal[h], 16); appChalSet[h] = true; }
+  bleSendTo(h, "CHAL:" + authBytesToHex(appChal[h], 16));
+}
+
+// Constant-time compare so the answer can't be guessed byte by byte.
+static bool appProofOk(uint16_t h, const String& hex) {
+  if (h >= BLE_MAX_CONNECTION || !appChalSet[h] || hex.length() != 64) return false;
+  uint8_t want[32], got[32];
+  hmacSha256(APP_KEY, 32, appChal[h], 16, want);
+  authHexToBytes(hex, got, 32);
+  uint8_t diff = 0;
+  for (int i = 0; i < 32; i++) diff |= want[i] ^ got[i];
+  return diff == 0;
 }
 
 void sendInfo() {
@@ -558,10 +605,32 @@ void pinTest() {
 }
 
 // ─────────────────────── COMMANDS ───────────────────────
-void handleCommand(String cmd) {
+// fromConn: the BLE connection it came from, or -1 for USB serial (trusted —
+// that needs the board in hand).
+void handleCommand(String cmd, int32_t fromConn = -1) {
   cmd.trim();
   if (!cmd.length()) return;
   Serial.println("CMD: " + cmd);
+
+  if (fromConn >= 0) {
+    uint16_t h = (uint16_t)fromConn;
+    if (cmd == "HELLO") { sendAppChallenge(h); return; }
+    if (cmd.startsWith("APP:")) {
+      if (appProofOk(h, cmd.substring(4))) {
+        appAuthed[h] = true;
+        bleSendTo(h, "APP_OK");
+        if (primaryConn < 0 || !appAuthed[primaryConn]) primaryConn = (int32_t)h;
+        infoDueAt = millis() + 150;     // INFO + STATUS, now that it may hear them
+        rolesDueAt = millis() + 300;
+      } else {
+        bleSendTo(h, "APP_ERR");
+        appChalSet[h] = false;          // fresh challenge for the next try
+        sendAppChallenge(h);
+      }
+      return;
+    }
+    if (!appAuthed[h]) { bleSendTo(h, "ERR:app_auth"); return; }
+  }
 
   if (cmd == "TARE" || cmd == "ZERO") {
     if (haveReading) {
@@ -644,15 +713,44 @@ void handleCommand(String cmd) {
   }
 }
 
-void pollBleRx() {
+// Incoming bytes are drained in the UART write callback, which runs right
+// after each write with the handle of the connection that wrote it — the
+// only way to know who sent a command, since BLEUart pools every connection
+// into one FIFO. Complete lines queue up for loop() to run.
+#define RXQ_LEN  8
+#define RXL_MAX  72
+struct RxLine { uint16_t h; char s[RXL_MAX]; };
+static char    rxPart[BLE_MAX_CONNECTION][RXL_MAX];
+static uint8_t rxPartLen[BLE_MAX_CONNECTION];
+static RxLine  rxQ[RXQ_LEN];
+static volatile uint8_t rxHead = 0, rxTail = 0;
+
+void bleRxCallback(uint16_t h) {
   while (bleuart.available()) {
     char c = (char)bleuart.read();
+    if (h >= BLE_MAX_CONNECTION) continue;
     if (c == '\n' || c == '\r') {
-      handleCommand(rxLine);
-      rxLine = "";
-    } else if (rxLine.length() < 64) {
-      rxLine += c;
+      if (rxPartLen[h]) {
+        uint8_t next = (rxHead + 1) % RXQ_LEN;
+        if (next != rxTail) {             // full → drop the line
+          rxQ[rxHead].h = h;
+          memcpy(rxQ[rxHead].s, rxPart[h], rxPartLen[h]);
+          rxQ[rxHead].s[rxPartLen[h]] = 0;
+          rxHead = next;
+        }
+        rxPartLen[h] = 0;
+      }
+    } else if (rxPartLen[h] < RXL_MAX - 1) {
+      rxPart[h][rxPartLen[h]++] = c;
     }
+  }
+}
+
+void pollBleRx() {
+  while (rxTail != rxHead) {
+    RxLine l = rxQ[rxTail];
+    rxTail = (rxTail + 1) % RXQ_LEN;
+    handleCommand(String(l.s), (int32_t)l.h);
   }
 }
 
@@ -662,19 +760,19 @@ void pollBleRx() {
 // here: calling Advertising.start() from inside the BLE event
 // callback can race the connection setup.
 volatile bool advRestartPending = false;
-volatile uint32_t infoDueAt = 0;   // when to volunteer INFO+STATUS after a connect
 
 void connectCallback(uint16_t conn_hdl) {
   (void)conn_hdl;
   advRestartPending = true;
   // First client in becomes primary; the assignment is (re)broadcast a moment
   // later once the notification pipe is open.
-  if (primaryConn < 0) primaryConn = (int32_t)conn_hdl;
-  // the app's own INFO/STATUS request often races the notification
-  // setup and its one-shot reply gets lost — send them unsolicited
-  // once the pipe has had time to open
-  infoDueAt = millis() + 2500;
-  rolesDueAt = millis() + 2600;
+  // Nothing is sent and no role given until the app proves itself (APP:).
+  if (conn_hdl < BLE_MAX_CONNECTION) {
+    appAuthed[conn_hdl] = false; appChalSet[conn_hdl] = false; rxPartLen[conn_hdl] = 0;
+  }
+  // Volunteer the challenge once the notification pipe has had time to
+  // open (the app also asks with HELLO, in case this one is missed).
+  chalDueAt = millis() + 1200;
 }
 
 void disconnectCallback(uint16_t conn_hdl, uint8_t reason) {
@@ -682,8 +780,19 @@ void disconnectCallback(uint16_t conn_hdl, uint8_t reason) {
   // If the primary left, free the slot so another client is promoted on the
   // next broadcast.
   if ((int32_t)conn_hdl == primaryConn) primaryConn = -1;
+  if (conn_hdl < BLE_MAX_CONNECTION) {
+    appAuthed[conn_hdl] = false; appChalSet[conn_hdl] = false; rxPartLen[conn_hdl] = 0;
+  }
   rolesDueAt = millis() + 400;
 }
+
+// Private advertising ID for cart scales: 8cc6a809-fbe2-46f5-bbe5-3b926e6c4a6c
+// (BLEUuid takes the 128-bit value little-endian).
+static const uint8_t CART_ADV_UUID[16] = {
+  0x6c,0x4a,0x6c,0x6e,0x92,0x3b,0xe5,0xbb,0xf5,0x46,0xe2,0xfb,0x09,0xa8,0xc6,0x8c
+};
+BLEUuid cartAdvUuid(CART_ADV_UUID);
+static const uint8_t ADV_MASK[4] = { 0x72, 0x8e, 0x27, 0xa4 };
 
 void setup() {
   Serial.begin(115200);
@@ -735,11 +844,23 @@ void setup() {
   bledis.setModel(MODEL_NAME);
   bledis.begin();
   bleuart.begin();
+  bleuart.setRxCallback(bleRxCallback, false);   // not deferred: runs with the writer's handle
 
+  // ── Advertising (1.8.0): only Virtus Cart recognises it ──
+  // No name, and no standard service: a private service ID that only cart
+  // scales use, so apps scanning for anything else (Virtus Feed, generic
+  // UART apps) never list it; plus the serial scrambled with ADV_MASK, which
+  // Virtus Cart unscrambles to label the scale. A scanner like nRF Connect
+  // sees an unnamed device with two random-looking numbers.
   Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
-  Bluefruit.Advertising.addTxPower();
-  Bluefruit.Advertising.addService(bleuart);   // app filters on NUS UUID
-  Bluefruit.ScanResponse.addName();
+  Bluefruit.Advertising.addUuid(cartAdvUuid);
+  {
+    uint32_t id = NRF_FICR->DEVICEID[0];
+    uint8_t md[8] = { 0xFF, 0xFF, 'V', 0x01,
+      (uint8_t)((id >> 24) ^ ADV_MASK[0]), (uint8_t)((id >> 16) ^ ADV_MASK[1]),
+      (uint8_t)((id >> 8)  ^ ADV_MASK[2]), (uint8_t)(id ^ ADV_MASK[3]) };
+    Bluefruit.Advertising.addManufacturerData(md, sizeof(md));
+  }
   Bluefruit.Advertising.restartOnDisconnect(true);
   // fast (20ms) for the first 30s after boot/disconnect for quick discovery,
   // then slow (1s) to save power while nobody is looking
@@ -748,7 +869,7 @@ void setup() {
   Bluefruit.Advertising.start(0);
 
   Serial.println(String("Virtus Scale v") + FIRMWARE_VERSION +
-                 " advertising as " + BLE_NAME);
+                 " advertising privately (Virtus Cart only)");
 }
 
 // ─────────────────────── LOOP ───────────────────────
@@ -761,6 +882,12 @@ void loop() {
     }
   }
 
+  if (chalDueAt && millis() > chalDueAt) {
+    chalDueAt = 0;
+    for (uint16_t h = 0; h < BLE_MAX_CONNECTION; h++) {
+      if (Bluefruit.connected(h) && bleuart.notifyEnabled(h) && !appAuthed[h]) sendAppChallenge(h);
+    }
+  }
   if (infoDueAt && millis() > infoDueAt) {
     infoDueAt = 0;
     sendInfo();
