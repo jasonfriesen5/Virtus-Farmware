@@ -29,7 +29,7 @@
 #include "sha256.h"
 
 // ───────────────────────── CONFIG ─────────────────────────
-#define FIRMWARE_VERSION   "1.8.0"
+#define FIRMWARE_VERSION   "1.8.1"
 #define MODEL_NAME         "VirtusScale"
 #define BLE_NAME           "Virtus Scale"   // GAP device name only — NOT advertised since 1.8.0
 #define MAX_CONNECTIONS    4                // simultaneous BLE clients
@@ -284,17 +284,21 @@ void bleSendTo(uint16_t h, const String& s) {
 // PRIMARY (the one allowed to log transactions / auto-unload); every other
 // client is a view-only REMOTE. This prevents two phones both saving the same
 // unload. Roles are pushed to each client so the app can enforce them.
+// A device that asked to be REMOTE (1.8.1) is never made primary, until it
+// asks for PRIMARY or reconnects.
+bool wantsRemote[BLE_MAX_CONNECTION];
+
 int32_t firstConnectedExcept(int32_t except) {
   for (uint16_t h = 0; h < BLE_MAX_CONNECTION; h++) {
     if ((int32_t)h == except) continue;
-    if (Bluefruit.connected(h) && appAuthed[h]) return (int32_t)h;
+    if (Bluefruit.connected(h) && appAuthed[h] && !wantsRemote[h]) return (int32_t)h;
   }
   return -1;
 }
 void ensurePrimary() {
   // If the primary slot is empty or its client has gone, promote the
   // first remaining connected client.
-  if (primaryConn < 0 || !Bluefruit.connected((uint16_t)primaryConn)) {
+  if (primaryConn < 0 || !Bluefruit.connected((uint16_t)primaryConn) || wantsRemote[primaryConn]) {
     primaryConn = firstConnectedExcept(-1);
   }
 }
@@ -615,6 +619,20 @@ void handleCommand(String cmd, int32_t fromConn = -1) {
   if (fromConn >= 0) {
     uint16_t h = (uint16_t)fromConn;
     if (cmd == "HELLO") { sendAppChallenge(h); return; }
+    // Chosen on the device (1.8.1): this device takes primary, or steps back
+    // to remote and stays there. Roles are re-sent to everyone right after.
+    if (appAuthed[h] && cmd == "PRIMARY") {
+      wantsRemote[h] = false;
+      primaryConn = (int32_t)h;
+      rolesDueAt = millis() + 50;
+      return;
+    }
+    if (appAuthed[h] && cmd == "REMOTE") {
+      wantsRemote[h] = true;
+      if (primaryConn == (int32_t)h) primaryConn = firstConnectedExcept((int32_t)h);
+      rolesDueAt = millis() + 50;
+      return;
+    }
     if (cmd.startsWith("APP:")) {
       if (appProofOk(h, cmd.substring(4))) {
         appAuthed[h] = true;
@@ -768,7 +786,7 @@ void connectCallback(uint16_t conn_hdl) {
   // later once the notification pipe is open.
   // Nothing is sent and no role given until the app proves itself (APP:).
   if (conn_hdl < BLE_MAX_CONNECTION) {
-    appAuthed[conn_hdl] = false; appChalSet[conn_hdl] = false; rxPartLen[conn_hdl] = 0;
+    appAuthed[conn_hdl] = false; appChalSet[conn_hdl] = false; rxPartLen[conn_hdl] = 0; wantsRemote[conn_hdl] = false;
   }
   // Volunteer the challenge once the notification pipe has had time to
   // open (the app also asks with HELLO, in case this one is missed).
@@ -781,7 +799,7 @@ void disconnectCallback(uint16_t conn_hdl, uint8_t reason) {
   // next broadcast.
   if ((int32_t)conn_hdl == primaryConn) primaryConn = -1;
   if (conn_hdl < BLE_MAX_CONNECTION) {
-    appAuthed[conn_hdl] = false; appChalSet[conn_hdl] = false; rxPartLen[conn_hdl] = 0;
+    appAuthed[conn_hdl] = false; appChalSet[conn_hdl] = false; rxPartLen[conn_hdl] = 0; wantsRemote[conn_hdl] = false;
   }
   rolesDueAt = millis() + 400;
 }
